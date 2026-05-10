@@ -34,6 +34,7 @@ const els = {
   workerType: document.querySelector("#workerType"),
   flexMode: document.querySelector("#flexMode"),
   flexMonths: document.querySelector("#flexMonths"),
+  flexMonthsValue: document.querySelector("#flexMonthsValue"),
   flexMonthsLabel: document.querySelector("#flexMonthsLabel"),
   retireDate: document.querySelector("#retireDate"),
   policyNote: document.querySelector("#policyNote"),
@@ -63,11 +64,13 @@ const els = {
 
 let settings = loadSettings();
 let reminderTimer = null;
+const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 init();
 
 function init() {
   els.flexMonths.max = String(FLEX_LIMIT_MONTHS);
+  els.flexMonths.setAttribute("aria-valuemax", String(FLEX_LIMIT_MONTHS));
   applySettingsToForm();
   applyMood();
   refreshPolicyCalculation();
@@ -85,6 +88,8 @@ function init() {
     element.addEventListener("input", refreshPolicyCalculation);
     element.addEventListener("change", refreshPolicyCalculation);
   });
+
+  els.flexMonths.addEventListener("input", () => updateFlexSliderDisplay(els.flexMonths.value));
 
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -168,9 +173,16 @@ function applySettingsToForm() {
   els.workerType.value = settings.workerType;
   els.flexMode.value = settings.flexMode;
   els.flexMonths.value = settings.flexMonths;
+  updateFlexSliderDisplay(settings.flexMonths);
   els.retireDate.value = settings.retireDate;
   els.reminderTime.value = settings.reminderTime;
   els.reminderText.value = settings.reminderText;
+}
+
+function updateFlexSliderDisplay(rawValue) {
+  const value = normalizeFlexMonths(rawValue);
+  els.flexMonths.style.setProperty("--slider-fill", `${(value / FLEX_LIMIT_MONTHS) * 100}%`);
+  els.flexMonthsValue.textContent = `${value} 个月`;
 }
 
 function applyMood() {
@@ -253,7 +265,7 @@ function updateCountdown() {
   const safeDays = Math.max(days, 0);
 
   els.targetLabel.textContent = `退休日 ${formatDate(target)}`;
-  els.heroCount.textContent = String(safeDays);
+  setHeroCount(String(safeDays));
   els.monthsLeft.textContent = String(Math.max(monthDiff(today, target), 0));
   els.weeksLeft.textContent = String(Math.max(Math.ceil(safeDays / 7), 0));
   els.hoursLeft.textContent = String(Math.max(Math.ceil(diff / (60 * 60 * 1000)), 0));
@@ -271,12 +283,26 @@ function updateCountdown() {
 
 function setEmptyCountdown() {
   els.targetLabel.textContent = "退休日未设置";
-  els.heroCount.textContent = "--";
+  setHeroCount("--");
   els.monthsLeft.textContent = "--";
   els.weeksLeft.textContent = "--";
   els.hoursLeft.textContent = "--";
   els.status.textContent = "设置退休日期后开始倒计时。";
   renderMonthBand(null);
+}
+
+function setHeroCount(value) {
+  const text = String(value);
+  if (els.heroCount.textContent === text) return;
+  els.heroCount.textContent = text;
+  if (reduceMotionQuery.matches || typeof els.heroCount.animate !== "function") return;
+  els.heroCount.animate(
+    [
+      { transform: "translateY(-12px)", opacity: 0 },
+      { transform: "translateY(0)", opacity: 1 },
+    ],
+    { duration: 360, easing: "cubic-bezier(.2,.7,.2,1)" },
+  );
 }
 
 function renderMonthBand(target) {
