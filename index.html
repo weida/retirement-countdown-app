@@ -6,131 +6,179 @@
     <meta name="theme-color" content="#f7f4ed" />
     <title>退休倒计时</title>
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body data-mood="day">
     <main class="app-shell">
-      <section class="countdown-panel" aria-label="退休倒计时">
-        <div class="topbar">
-          <div>
-            <p class="eyebrow">Retirement Countdown</p>
-            <h1>退休倒计时</h1>
+      <article class="countdown-card" aria-label="退休倒计时">
+        <header class="card-top">
+          <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
+          <div class="card-actions">
+            <button class="icon-btn mood-toggle" id="moodToggle" type="button" aria-label="切换情绪主题" title="切换情绪">
+              <svg class="mood-icon mood-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path><path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path><path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
+              <svg class="mood-icon mood-icon--moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path>
+              </svg>
+            </button>
+            <button class="icon-btn" id="openSettings" type="button" aria-label="打开设置" title="设置">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
           </div>
-          <button class="icon-button" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
-            <span aria-hidden="true">◐</span>
-          </button>
-        </div>
+        </header>
 
-        <div class="date-row">
-          <span id="todayLabel">今天</span>
-          <span id="targetLabel">目标日期未设置</span>
-        </div>
+        <section class="month-band" aria-label="退休年月份带">
+          <div class="band-meta">
+            <span class="band-year" id="bandYear">----</span>
+            <span class="band-caption" id="bandCaption">设置退休日后,这里会显示退休年的工作 / 退休月份。</span>
+          </div>
+          <ol class="month-dots" id="monthDots" aria-hidden="true"></ol>
+        </section>
 
-        <div class="hero-count" id="heroCount">
-          <span class="number">--</span>
-          <span class="unit">天</span>
-        </div>
+        <section class="hero">
+          <span class="hero-number" id="heroCount">--</span>
+          <span class="hero-unit">天</span>
+        </section>
 
-        <div class="time-grid" aria-label="详细倒计时">
-          <div>
+        <section class="stamps" aria-label="详细倒计时">
+          <article class="stamp">
             <strong id="monthsLeft">--</strong>
-            <span>个月</span>
-          </div>
-          <div>
+            <span>月</span>
+          </article>
+          <article class="stamp">
             <strong id="weeksLeft">--</strong>
             <span>周</span>
-          </div>
-          <div>
+          </article>
+          <article class="stamp">
             <strong id="hoursLeft">--</strong>
-            <span>小时</span>
-          </div>
-        </div>
+            <span>时</span>
+          </article>
+        </section>
 
-        <p class="status" id="retirementStatus">设置退休日期后开始倒计时。</p>
-      </section>
+        <footer class="card-foot">
+          <span id="todayLabel">今天</span>
+          <span class="dot-sep" aria-hidden="true">·</span>
+          <span id="targetLabel">退休日未设置</span>
+          <span class="dot-sep" aria-hidden="true">·</span>
+          <span id="retirementStatus">设置退休日期后开始倒计时。</span>
+        </footer>
+      </article>
 
-      <section class="settings-panel" aria-label="设置">
-        <form id="settingsForm">
-          <label>
-            <span>计算方式</span>
-            <select id="calculationMode">
-              <option value="policy">按中国法定退休政策自动计算</option>
-              <option value="manual">手动设置退休日期</option>
-            </select>
-          </label>
+      <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
+        <form id="settingsForm" method="dialog">
+          <header class="dialog-head">
+            <h2 id="settingsTitle">退休设置</h2>
+            <button type="button" class="icon-btn" id="closeSettings" aria-label="关闭设置">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </header>
 
-          <div class="policy-fields" id="policyFields">
-            <label>
+          <fieldset class="dialog-group">
+            <legend>计算方式</legend>
+            <label class="stack">
+              <span>方式</span>
+              <select id="calculationMode">
+                <option value="policy">按中国法定退休政策自动计算</option>
+                <option value="manual">手动设置退休日期</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset class="dialog-group policy-fields" id="policyFields">
+            <legend>政策参数</legend>
+            <label class="stack">
               <span>出生日期</span>
               <input id="birthDate" type="date" />
             </label>
 
-            <label>
+            <label class="stack">
               <span>人员类型</span>
               <select id="workerType">
-                <option value="male">男职工：原 60 岁退休</option>
-                <option value="female55">女职工：原 55 岁退休</option>
-                <option value="female50">女职工：原 50 岁退休</option>
+                <option value="male">男职工:原 60 岁退休</option>
+                <option value="female55">女职工:原 55 岁退休</option>
+                <option value="female50">女职工:原 50 岁退休</option>
               </select>
             </label>
 
-            <label>
+            <label class="stack">
               <span>弹性退休</span>
               <select id="flexMode">
                 <option value="statutory">按改革后法定退休年龄</option>
-                <option value="early">弹性提前退休，提前 3 年内</option>
-                <option value="late">弹性延迟退休，延迟 3 年内</option>
+                <option value="early">弹性提前退休,提前 3 年内</option>
+                <option value="late">弹性延迟退休,延迟 3 年内</option>
               </select>
             </label>
 
-            <label id="flexMonthsLabel">
+            <label class="stack" id="flexMonthsLabel">
               <span>弹性月数</span>
               <input id="flexMonths" type="number" min="0" max="36" step="1" value="0" />
             </label>
-          </div>
 
-          <div class="policy-result" id="policyResult" hidden>
-            <div>
-              <span>改革后法定退休日</span>
-              <strong id="statutoryResult">--</strong>
+            <div class="policy-result" id="policyResult" role="group" aria-label="政策计算结果" hidden>
+              <div>
+                <span>改革后法定退休日</span>
+                <strong id="statutoryResult">--</strong>
+              </div>
+              <div>
+                <span>弹性调整后退休日</span>
+                <strong id="finalResult">--</strong>
+              </div>
             </div>
-            <div>
-              <span>弹性调整后退休日</span>
-              <strong id="finalResult">--</strong>
+
+            <p class="policy-note" id="policyNote">填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。</p>
+          </fieldset>
+
+          <fieldset class="dialog-group">
+            <legend>退休日期</legend>
+            <label class="stack">
+              <span>日期</span>
+              <input id="retireDate" type="date" required />
+            </label>
+          </fieldset>
+
+          <fieldset class="dialog-group">
+            <legend>每日提醒</legend>
+            <label class="stack">
+              <span>提醒时间</span>
+              <input id="reminderTime" type="time" required />
+            </label>
+
+            <label class="stack">
+              <span>提醒文案</span>
+              <input id="reminderText" type="text" maxlength="42" placeholder="今天也离退休更近了一天" />
+            </label>
+
+            <div class="reminder-card">
+              <div>
+                <span>下一次提醒</span>
+                <strong id="nextReminder">未设置</strong>
+              </div>
+              <span class="pill" id="permissionState">通知未开启</span>
             </div>
-          </div>
+          </fieldset>
 
-          <label>
-            <span>退休日期</span>
-            <input id="retireDate" type="date" required />
-          </label>
-
-          <p class="policy-note" id="policyNote">填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。</p>
-
-          <label>
-            <span>每日提醒时间</span>
-            <input id="reminderTime" type="time" required />
-          </label>
-
-          <label>
-            <span>提醒文案</span>
-            <input id="reminderText" type="text" maxlength="42" placeholder="今天也离退休更近了一天" />
-          </label>
-
-          <div class="actions">
+          <footer class="dialog-foot">
+            <button class="ghost" id="notifyButton" type="button">开启通知</button>
             <button class="primary" type="submit">保存设置</button>
-            <button class="secondary" id="notifyButton" type="button">开启通知</button>
-          </div>
+          </footer>
         </form>
-
-        <div class="reminder-card">
-          <div>
-            <span>下一次提醒</span>
-            <strong id="nextReminder">未设置</strong>
-          </div>
-          <span class="pill" id="permissionState">通知未开启</span>
-        </div>
-      </section>
+      </dialog>
     </main>
 
     <script type="module" src="/src/main.js"></script>
