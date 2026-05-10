@@ -1,0 +1,10 @@
+{
+  "appId": "com.codex.retirementcountdown",
+  "appName": "退休倒计时",
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#126c62"
+    }
+  }
+}

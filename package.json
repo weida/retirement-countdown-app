@@ -1,0 +1,25 @@
+{
+  "name": "retirement-countdown-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4173",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "cap:sync": "npm run build && cap sync",
+    "android": "npm run build && cap open android",
+    "ios": "npm run build && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.3",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.3.3",
+    "@capacitor/ios": "^8.3.3",
+    "@capacitor/local-notifications": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.3.3",
+    "vite": "^7.0.0"
+  }
+}

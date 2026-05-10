@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f4ed" />
+    <title>退休倒计时</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="countdown-panel" aria-label="退休倒计时">
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">Retirement Countdown</p>
+            <h1>退休倒计时</h1>
+          </div>
+          <button class="icon-button" id="themeToggle" type="button" aria-label="切换主题" title="切换主题">
+            <span aria-hidden="true">◐</span>
+          </button>
+        </div>
+
+        <div class="date-row">
+          <span id="todayLabel">今天</span>
+          <span id="targetLabel">目标日期未设置</span>
+        </div>
+
+        <div class="hero-count" id="heroCount">
+          <span class="number">--</span>
+          <span class="unit">天</span>
+        </div>
+
+        <div class="time-grid" aria-label="详细倒计时">
+          <div>
+            <strong id="monthsLeft">--</strong>
+            <span>个月</span>
+          </div>
+          <div>
+            <strong id="weeksLeft">--</strong>
+            <span>周</span>
+          </div>
+          <div>
+            <strong id="hoursLeft">--</strong>
+            <span>小时</span>
+          </div>
+        </div>
+
+        <p class="status" id="retirementStatus">设置退休日期后开始倒计时。</p>
+      </section>
+
+      <section class="settings-panel" aria-label="设置">
+        <form id="settingsForm">
+          <label>
+            <span>退休日期</span>
+            <input id="retireDate" type="date" required />
+          </label>
+
+          <label>
+            <span>每日提醒时间</span>
+            <input id="reminderTime" type="time" required />
+          </label>
+
+          <label>
+            <span>提醒文案</span>
+            <input id="reminderText" type="text" maxlength="42" placeholder="今天也离退休更近了一天" />
+          </label>
+
+          <div class="actions">
+            <button class="primary" type="submit">保存设置</button>
+            <button class="secondary" id="notifyButton" type="button">开启通知</button>
+          </div>
+        </form>
+
+        <div class="reminder-card">
+          <div>
+            <span>下一次提醒</span>
+            <strong id="nextReminder">未设置</strong>
+          </div>
+          <span class="pill" id="permissionState">通知未开启</span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
