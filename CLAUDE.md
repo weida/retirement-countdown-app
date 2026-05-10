@@ -15,7 +15,7 @@ npm run android      # build + cap open android (needs Android Studio + SDK + JD
 npm run ios          # build + cap open ios   (needs macOS + Xcode)
 ```
 
-There is no test suite, linter, or type-checker configured. Don't invent commands for them.
+`npm test` runs the Vitest retirement-policy unit tests. There is no linter or type-checker configured.
 
 Android APKs are built in CI via `.github/workflows/android-apk.yml` (Node 22 + JDK 21). Trigger with `workflow_dispatch` or push to `main`/`master`; download `retirement-countdown-debug-apk` from the run page. Output is a debug APK only — release signing is not set up.
 
@@ -23,9 +23,9 @@ Android APKs are built in CI via `.github/workflows/android-apk.yml` (Node 22 + 
 
 Single-page vanilla-JS PWA wrapped with Capacitor for Android/iOS. **No framework** — this is a deliberate choice (see `docs/architecture-review.md`); don't introduce React/Vue without discussion.
 
-### One module, two runtimes
+### Web shell and native runtime
 
-`src/main.js` is the entire app. It branches on `Capacitor.isNativePlatform()` to pick the appropriate notification path:
+`src/main.js` owns DOM orchestration, countdown display, settings persistence, and notification scheduling. It branches on `Capacitor.isNativePlatform()` to pick the appropriate notification path:
 
 - **Web/PWA**: `Notification.requestPermission()`, page `setTimeout` reschedules the next reminder, and `public/service-worker.js` displays the notification.
 - **Native (Capacitor)**: `@capacitor/local-notifications` schedules a daily-repeating notification (`schedule.every: "day"`, `allowWhileIdle: true`) bound to fixed `NOTIFICATION_ID = 1001` so reschedules cancel the prior one. Android also creates channel `daily-retirement-reminder` via `ensureAndroidNotificationChannel()`.
@@ -34,15 +34,15 @@ Settings persist to `localStorage` under key `retirement-countdown-settings`. Th
 
 ### Retirement-date calculation (core domain logic)
 
-The `RETIREMENT_RULES` table in `src/main.js` encodes China's progressive retirement-age reform for three worker types (male / female-55 / female-50). Each entry has `baseAgeMonths`, `reformStart` (year/month cohort cutoff), `monthsPerDelayMonth` (e.g. 4 → +1 month per 4 birth-months past start), and `maxDelayMonths`.
+The `RETIREMENT_RULES` table in `src/retirement.js` encodes China's progressive retirement-age reform for three worker types (male / female-55 / female-50). Each entry has `baseAgeMonths`, `reformStart` (year/month cohort cutoff), `monthsPerDelayMonth` (e.g. 4 → +1 month per 4 birth-months past start), and `maxDelayMonths`.
 
 Flow: `calculateDelayMonths()` computes the delay from birth cohort; `calculateRetirementDate()` adds it to the base age, then applies a flexible early/late adjustment (capped, and never below the original statutory age for early). When changing this logic, also check the assumptions and exclusions documented in `docs/architecture-review.md` §5 — special-occupation early retirement and pension-contribution minimums are intentionally **not** modeled and the UI defers those to local social-security offices.
 
 UI is Chinese-first (`lang="zh-CN"`); user-facing strings are Chinese. Keep that consistent unless localization is added.
 
-### Stale root-level duplicates
+### Static assets
 
-`app.js`, `manifest.webmanifest`, `service-worker.js`, and `icon.svg` exist at both the project root **and** in `public/`. Vite serves `public/` as web root, so the **`public/` copies are the live ones**. The root copies are leftovers from a pre-Vite/pre-Capacitor version (root `app.js` lacks the policy calculator and Capacitor integration entirely). Don't edit the root duplicates — edit `public/` and `src/main.js`. They can be deleted if you're cleaning up.
+Vite serves `public/` as the web root. PWA assets live there: `public/manifest.webmanifest`, `public/service-worker.js`, and `public/icon.svg`.
 
 ### Capacitor config
 

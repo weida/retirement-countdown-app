@@ -6,6 +6,10 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
 
 jobs:
   build-android:
@@ -19,6 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,8 +34,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
 
       - name: Build web app
         run: npm run build

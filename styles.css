@@ -263,7 +263,8 @@ select:focus {
   color: var(--text);
 }
 
-.reminder-card {
+.reminder-card,
+.policy-result {
   margin-top: 18px;
   padding: 16px;
   border: 1px solid var(--line);
@@ -275,6 +276,22 @@ select:focus {
   display: block;
   margin-top: 4px;
   font-size: 1rem;
+}
+
+.policy-result {
+  display: grid;
+  gap: 12px;
+  margin-top: 0;
+}
+
+.policy-result[hidden] {
+  display: none;
+}
+
+.policy-result strong {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.35;
 }
 
 .pill {

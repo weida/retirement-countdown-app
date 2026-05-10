@@ -27,7 +27,9 @@
 ├── .github/workflows/android-apk.yml   # GitHub Actions Android APK 构建流程
 ├── docs/architecture-review.md         # 本文档
 ├── public/                             # PWA 静态资源
-├── src/main.js                         # 主业务逻辑、政策计算、通知调度
+├── src/main.js                         # DOM 编排、倒计时展示、通知调度
+├── src/retirement.js                   # 退休政策计算纯函数
+├── src/retirement.test.js              # 政策计算单元测试
 ├── capacitor.config.json               # Capacitor App 配置
 ├── index.html                          # 页面结构
 ├── styles.css                          # 页面样式
@@ -69,7 +71,7 @@ flowchart TD
 | 女职工，原 55 岁退休 | 55 岁 | 每 4 个月延迟 1 个月 | 58 岁 |
 | 女职工，原 50 岁退休 | 50 岁 | 每 2 个月延迟 1 个月 | 55 岁 |
 
-实现逻辑位于 `src/main.js`：
+实现逻辑位于 `src/retirement.js`：
 
 - `RETIREMENT_RULES`：定义三类人员的基准年龄、改革起始出生年月、延迟节奏和最大延迟月数。
 - `calculateDelayMonths()`：根据出生年月计算延迟月数。
