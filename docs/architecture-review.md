@@ -103,6 +103,7 @@ flowchart TD
 - `Notification.requestPermission()`
 - 页面内 `setTimeout()` 调度下一次提醒
 - Service Worker 用于展示通知和离线缓存
+- Service Worker 采用 network-first 策略：在线时优先获取最新资源，离线或网络失败时回退到缓存，避免已安装 PWA 长期停留在旧 JS/CSS。
 
 限制：
 

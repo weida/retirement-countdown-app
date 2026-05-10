@@ -89,8 +89,8 @@ function init() {
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const calculation = refreshPolicyCalculation();
-
     const previousRetireDate = settings.retireDate;
+
     settings = {
       ...settings,
       calculationMode: els.calculationMode.value,
@@ -425,37 +425,38 @@ function fireWebDailyReminder() {
 async function notifyRetirementReachedOnce() {
   if (settings.retirementReachedNotified) return;
 
-  let delivered = false;
-
   if (isNative()) {
     const permission = await LocalNotifications.checkPermissions();
-    if (permission.display === "granted") {
-      try {
-        await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Date.now() % 100000,
-              title: "退休日已到",
-              body: "退休倒计时提醒已停止。",
-              schedule: { at: new Date(Date.now() + 1000) },
-              channelId: "daily-retirement-reminder",
-            },
-          ],
-        });
-        delivered = true;
-      } catch {
-        delivered = false;
-      }
+    if (permission.display !== "granted") return;
+
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Date.now() % 100000,
+            title: "退休日已到",
+            body: "退休倒计时提醒已停止。",
+            schedule: { at: new Date(Date.now() + 1000) },
+            channelId: "daily-retirement-reminder",
+          },
+        ],
+      });
+      markRetirementReachedNotified();
+    } catch {
+      // Native schedule rejected; leave the flag unset so the next pass retries.
     }
-  } else if ("Notification" in window && Notification.permission === "granted") {
-    showWebNotification("退休日已到", "退休倒计时提醒已停止。");
-    delivered = true;
+    return;
   }
 
-  if (delivered) {
-    settings.retirementReachedNotified = true;
-    saveSettings();
+  if ("Notification" in window && Notification.permission === "granted") {
+    showWebNotification("退休日已到", "退休倒计时提醒已停止。");
+    markRetirementReachedNotified();
   }
+}
+
+function markRetirementReachedNotified() {
+  settings.retirementReachedNotified = true;
+  saveSettings();
 }
 
 function nativeReminderBody() {
