@@ -60,6 +60,7 @@ let reminderTimer = null;
 init();
 
 function init() {
+  els.flexMonths.max = String(FLEX_LIMIT_MONTHS);
   applySettingsToForm();
   applyTheme();
   refreshPolicyCalculation();
@@ -81,8 +82,8 @@ function init() {
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const calculation = refreshPolicyCalculation();
-
     const previousRetireDate = settings.retireDate;
+
     settings = {
       ...settings,
       calculationMode: els.calculationMode.value,
@@ -156,7 +157,6 @@ function refreshPolicyCalculation() {
   els.resultCard.hidden = true;
   els.retireDate.readOnly = policyMode;
   els.flexMonthsLabel.hidden = els.flexMode.value === "statutory";
-  els.flexMonths.max = String(FLEX_LIMIT_MONTHS);
 
   if (!policyMode) {
     els.policyNote.textContent = "手动日期适合特殊工种、已确认退休时间，或不适用企业职工法定退休年龄规则的情况。";
@@ -355,8 +355,6 @@ function fireWebDailyReminder() {
 
 async function notifyRetirementReachedOnce() {
   if (settings.retirementReachedNotified) return;
-  settings.retirementReachedNotified = true;
-  saveSettings();
 
   if (isNative()) {
     const permission = await LocalNotifications.checkPermissions();
@@ -373,12 +371,19 @@ async function notifyRetirementReachedOnce() {
         },
       ],
     });
+    markRetirementReachedNotified();
     return;
   }
 
   if ("Notification" in window && Notification.permission === "granted") {
     showWebNotification("退休日已到", "退休倒计时提醒已停止。");
+    markRetirementReachedNotified();
   }
+}
+
+function markRetirementReachedNotified() {
+  settings.retirementReachedNotified = true;
+  saveSettings();
 }
 
 function nativeReminderBody() {
