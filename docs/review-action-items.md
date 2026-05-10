@@ -2,6 +2,23 @@
 
 本清单基于 `docs/architecture-review.md` 与当前代码评审整理,可作为修复任务直接分配。条目按优先级 P0 → P2 排列,**条目内尽量独立,可单独取出做一个 PR**。
 
+## 当前状态(截至 2026-05-10 评审)
+
+| 项 | 状态 | 落地处 |
+|---|---|---|
+| P0-1 退休后停止/调整提醒 | ✅ 已完成 | `src/retirement.js` `isRetired()`、`src/main.js` `scheduleReminder` / `notifyRetirementReachedOnce` |
+| P0-2 PWA 缓存修复 | ✅ 已完成(runtime caching 路线) | `public/service-worker.js` v3,network-first + activate 清理旧 cache |
+| P0-3 lockfile + `npm ci` | ✅ 已完成 | `package-lock.json` 已提交,workflow 切到 `npm ci` + `cache: npm` + setup-gradle |
+| P1-1 政策计算抽离 + 单测 | ✅ 已完成 | `src/retirement.js`(纯函数 + `+1` 注释)、`src/retirement.test.js` 11 个测试,样例覆盖 P1-1 列出的全部边界 |
+| P1-2 双日期 UI | ✅ 已完成 | `index.html` `#policyResult` 卡片、`src/main.js:179-183` 渲染、`styles.css` `.policy-result` |
+| P1-3 清理根目录旧资源 | ✅ 已完成 | `app.js` / `icon.svg` / `manifest.webmanifest` / `service-worker.js` 已删,`docs/architecture-review.md` §3 同步 |
+| P2-1 appId / release 签名 / 版本号 | ⏸ 待发布前处理 | — |
+| P2-2 flexMonths 上限统一 | ✅ 已完成(选了"统一 36"路线) | `src/retirement.js` `FLEX_LIMIT_MONTHS` 常量 |
+| P2-3 CI workflow 优化 | ✅ 已完成 | `.github/workflows/android-apk.yml` paths-ignore + npm cache + gradle cache + 加跑 `npm test` |
+| P2-4 隐私政策页 | ⏸ 仅在公开上架时做 | — |
+
+P0/P1 全部完成,部分 P2 顺手做掉。下面 P3 小节是这一轮评审中**新发现的小问题**,不阻塞合并,可在下一次小修中处理。
+
 ## 设计约束(改动前请先读)
 
 - 项目刻意保持 **Vanilla JS**,不引入 React / Vue / 状态管理库。
@@ -13,7 +30,7 @@
 
 ## P0 — 影响正确性或核心体验,优先合并
 
-### P0-1 退休日之后停止 / 调整每日提醒
+### P0-1 退休日之后停止 / 调整每日提醒 ✅ 已完成
 
 **现状**
 
@@ -40,7 +57,7 @@
 
 ---
 
-### P0-2 PWA 资源缓存修复(目前离线打不开)
+### P0-2 PWA 资源缓存修复(目前离线打不开) ✅ 已完成
 
 **现状**
 
@@ -78,7 +95,7 @@ B. 若不愿加依赖:改成 runtime caching —— 安装阶段只缓存 shell,
 
 ---
 
-### P0-3 提交 `package-lock.json`,CI 改用 `npm ci`
+### P0-3 提交 `package-lock.json`,CI 改用 `npm ci` ✅ 已完成
 
 **现状**
 
@@ -105,7 +122,7 @@ B. 若不愿加依赖:改成 runtime caching —— 安装阶段只缓存 shell,
 
 ## P1 — 可信度与可维护性
 
-### P1-1 政策计算的单元测试 + 公式可读性
+### P1-1 政策计算的单元测试 + 公式可读性 ✅ 已完成
 
 **现状**
 
@@ -139,7 +156,7 @@ B. 若不愿加依赖:改成 runtime caching —— 安装阶段只缓存 shell,
 
 ---
 
-### P1-2 UI 同时展示"法定退休日"与"弹性调整后退休日"
+### P1-2 UI 同时展示"法定退休日"与"弹性调整后退休日" ✅ 已完成
 
 **现状**
 
@@ -167,7 +184,7 @@ B. 若不愿加依赖:改成 runtime caching —— 安装阶段只缓存 shell,
 
 ---
 
-### P1-3 清理根目录的旧版重复资源
+### P1-3 清理根目录的旧版重复资源 ✅ 已完成
 
 **现状**
 
@@ -203,7 +220,7 @@ git rm app.js manifest.webmanifest service-worker.js icon.svg
 
 ## P2 — 对外发布前要做,但不阻塞内测
 
-### P2-1 `appId`、release 签名、版本号策略
+### P2-1 `appId`、release 签名、版本号策略 ⏸ 待发布前处理
 
 **现状**
 
@@ -226,7 +243,7 @@ git rm app.js manifest.webmanifest service-worker.js icon.svg
 
 ---
 
-### P2-2 `flexMonths` 上限按 `RETIREMENT_RULES[workerType].maxDelayMonths` 动态化
+### P2-2 `flexMonths` 上限按 `RETIREMENT_RULES[workerType].maxDelayMonths` 动态化 ✅ 已完成(选了"统一 36"路线)
 
 **现状**
 
@@ -246,7 +263,7 @@ git rm app.js manifest.webmanifest service-worker.js icon.svg
 
 ---
 
-### P2-3 CI workflow 优化
+### P2-3 CI workflow 优化 ✅ 已完成(并加跑了测试)
 
 **现状**
 
@@ -278,12 +295,52 @@ on:
 
 ---
 
-### P2-4(条件性)隐私政策页
+### P2-4(条件性)隐私政策页 ⏸ 仅在公开上架时做
 
 **触发条件**:**仅在准备公开上架商店时**做,内部使用不需要。
 
 - 在 `index.html` 加一个 "关于 / 隐私" 入口,内容写明:不收集、不上传、不同步、本地存储项清单(见 `docs/architecture-review.md` §7)。
 - 商店要求的网页版隐私政策可指向同一页或 GitHub Pages。
+
+---
+
+## P3 — 评审中新发现的小问题(不阻塞合并,可在下一次小修中处理)
+
+### P3-1 `cache.put` 缺 `event.waitUntil` 包裹
+
+`public/service-worker.js:30-42` 当前直接调用 `cache.put(event.request, response.clone())`,SW 提前结束时这次写缓存可能被打断,导致离线再次访问时部分资源缺失。
+
+**修复**:
+
+```js
+event.waitUntil(cache.put(event.request, response.clone()));
+```
+
+或更稳妥地把整个 try 分支包进 `waitUntil`。
+
+### P3-2 `notifyRetirementReachedOnce` 标志位写在通知发送之前
+
+`src/main.js:356-362` 顺序是先 `settings.retirementReachedNotified = true; saveSettings()`,再 `LocalNotifications.schedule(...)`。如果 schedule 失败(权限撤销、系统问题),用户**永远收不到**"退休日已到"那条一次性通知。
+
+**修复**:把通知发送放在前面,成功后再写标志位并 save。
+
+### P3-3 `els.flexMonths.max` 的赋值挪到 `init`
+
+`src/main.js:159` `els.flexMonths.max = String(FLEX_LIMIT_MONTHS)` 在每次 `refreshPolicyCalculation`(input/change)都重写一次。这个值是常量,放到 `init()` 一次设定即可。
+
+### P3-4 `#policyResult` 缺无障碍属性
+
+`index.html:92-101` 新增的政策结果卡片是两段 `<span>label</span><strong>value</strong>`,屏幕阅读器读到的是无关联的零散文本。建议:
+
+```html
+<div class="policy-result" id="policyResult" role="group" aria-label="政策计算结果" hidden>
+```
+
+并把内部两块也加上 `aria-labelledby` 关联各自的 label。
+
+### P3-5 SW 缓存策略选择留个文档说明
+
+当前 `public/service-worker.js` 是 network-first(在线优先,失败回缓存)。这适合"在线就拿最新"场景,但 PWA 离线打开的瞬时体验弱于 cache-first。当前选择不算错,只是不同团队偏好不同 —— 建议在 `docs/architecture-review.md` §6 加一行说明,免得未来有人把它"改对"。
 
 ---
 

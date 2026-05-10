@@ -6,3 +6,6 @@ ios/
 *.log
 *.zip
 .DS_Store
+
+# Per-developer Claude Code working notes; not shared via git
+CLAUDE.md
