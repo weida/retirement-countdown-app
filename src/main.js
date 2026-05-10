@@ -142,11 +142,20 @@ function loadSettings() {
   } catch {
     stored = {};
   }
-  if (stored.dark !== undefined && stored.mood === undefined) {
+  const needsMigration = stored.dark !== undefined && stored.mood === undefined;
+  if (needsMigration) {
     stored.mood = stored.dark ? "dusk" : "day";
     delete stored.dark;
   }
-  return { ...defaults, ...stored };
+  const merged = { ...defaults, ...stored };
+  if (needsMigration) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    } catch {
+      // localStorage write may fail in private mode / quota; in-memory state still works
+    }
+  }
+  return merged;
 }
 
 function saveSettings() {

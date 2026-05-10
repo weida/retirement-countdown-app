@@ -10,6 +10,14 @@ on:
       - "**.md"
       - "docs/**"
       - ".github/ISSUE_TEMPLATE/**"
+  pull_request:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
 
 jobs:
   build-android:
