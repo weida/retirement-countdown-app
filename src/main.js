@@ -4,7 +4,39 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 const STORAGE_KEY = "retirement-countdown-settings";
 const NOTIFICATION_ID = 1001;
 
+const RETIREMENT_RULES = {
+  male: {
+    label: "男职工：原 60 岁退休",
+    baseAgeMonths: 60 * 12,
+    reformStart: { year: 1965, month: 1 },
+    monthsPerDelayMonth: 4,
+    maxDelayMonths: 36,
+    originalMinimumAgeMonths: 60 * 12,
+  },
+  female55: {
+    label: "女职工：原 55 岁退休",
+    baseAgeMonths: 55 * 12,
+    reformStart: { year: 1970, month: 1 },
+    monthsPerDelayMonth: 4,
+    maxDelayMonths: 36,
+    originalMinimumAgeMonths: 55 * 12,
+  },
+  female50: {
+    label: "女职工：原 50 岁退休",
+    baseAgeMonths: 50 * 12,
+    reformStart: { year: 1975, month: 1 },
+    monthsPerDelayMonth: 2,
+    maxDelayMonths: 60,
+    originalMinimumAgeMonths: 50 * 12,
+  },
+};
+
 const defaults = {
+  calculationMode: "policy",
+  birthDate: "",
+  workerType: "male",
+  flexMode: "statutory",
+  flexMonths: 0,
   retireDate: "",
   reminderTime: "09:00",
   reminderText: "今天也离退休更近了一天",
@@ -13,7 +45,15 @@ const defaults = {
 
 const els = {
   form: document.querySelector("#settingsForm"),
+  calculationMode: document.querySelector("#calculationMode"),
+  policyFields: document.querySelector("#policyFields"),
+  birthDate: document.querySelector("#birthDate"),
+  workerType: document.querySelector("#workerType"),
+  flexMode: document.querySelector("#flexMode"),
+  flexMonths: document.querySelector("#flexMonths"),
+  flexMonthsLabel: document.querySelector("#flexMonthsLabel"),
   retireDate: document.querySelector("#retireDate"),
+  policyNote: document.querySelector("#policyNote"),
   reminderTime: document.querySelector("#reminderTime"),
   reminderText: document.querySelector("#reminderText"),
   notifyButton: document.querySelector("#notifyButton"),
@@ -37,18 +77,38 @@ init();
 function init() {
   applySettingsToForm();
   applyTheme();
+  refreshPolicyCalculation();
   updateCountdown();
   updatePermissionState();
   scheduleReminder();
 
+  [
+    els.calculationMode,
+    els.birthDate,
+    els.workerType,
+    els.flexMode,
+    els.flexMonths,
+  ].forEach((element) => {
+    element.addEventListener("input", refreshPolicyCalculation);
+    element.addEventListener("change", refreshPolicyCalculation);
+  });
+
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    refreshPolicyCalculation();
+
     settings = {
       ...settings,
+      calculationMode: els.calculationMode.value,
+      birthDate: els.birthDate.value,
+      workerType: els.workerType.value,
+      flexMode: els.flexMode.value,
+      flexMonths: normalizeFlexMonths(els.flexMonths.value),
       retireDate: els.retireDate.value,
       reminderTime: els.reminderTime.value || defaults.reminderTime,
       reminderText: els.reminderText.value.trim() || defaults.reminderText,
     };
+
     saveSettings();
     updateCountdown();
     await scheduleReminder();
@@ -82,6 +142,11 @@ function saveSettings() {
 }
 
 function applySettingsToForm() {
+  els.calculationMode.value = settings.calculationMode;
+  els.birthDate.value = settings.birthDate;
+  els.workerType.value = settings.workerType;
+  els.flexMode.value = settings.flexMode;
+  els.flexMonths.value = settings.flexMonths;
   els.retireDate.value = settings.retireDate;
   els.reminderTime.value = settings.reminderTime;
   els.reminderText.value = settings.reminderText;
@@ -89,6 +154,78 @@ function applySettingsToForm() {
 
 function applyTheme() {
   document.body.classList.toggle("dark", Boolean(settings.dark));
+}
+
+function refreshPolicyCalculation() {
+  const policyMode = els.calculationMode.value === "policy";
+  els.policyFields.hidden = !policyMode;
+  els.retireDate.readOnly = policyMode;
+  els.flexMonthsLabel.hidden = els.flexMode.value === "statutory";
+
+  if (!policyMode) {
+    els.policyNote.textContent = "手动日期适合特殊工种、已确认退休时间，或不适用企业职工法定退休年龄规则的情况。";
+    return;
+  }
+
+  if (!els.birthDate.value) {
+    els.retireDate.value = "";
+    els.policyNote.textContent = "填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。";
+    return;
+  }
+
+  const result = calculateRetirementDate({
+    birthDate: els.birthDate.value,
+    workerType: els.workerType.value,
+    flexMode: els.flexMode.value,
+    flexMonths: els.flexMonths.value,
+  });
+
+  els.retireDate.value = result.date;
+  els.policyNote.textContent = result.note;
+}
+
+function calculateRetirementDate({ birthDate, workerType, flexMode, flexMonths }) {
+  const birth = parseDateOnly(birthDate);
+  const rule = RETIREMENT_RULES[workerType] || RETIREMENT_RULES.male;
+  const delayMonths = calculateDelayMonths(birth, rule);
+  const statutoryAgeMonths = rule.baseAgeMonths + delayMonths;
+  const statutoryDate = addMonths(birth, statutoryAgeMonths);
+  const normalizedFlexMonths = normalizeFlexMonths(flexMonths);
+
+  let finalAgeMonths = statutoryAgeMonths;
+  if (flexMode === "early") {
+    finalAgeMonths = Math.max(
+      rule.originalMinimumAgeMonths,
+      statutoryAgeMonths - normalizedFlexMonths,
+    );
+  } else if (flexMode === "late") {
+    finalAgeMonths = statutoryAgeMonths + normalizedFlexMonths;
+  }
+
+  const finalDate = addMonths(birth, finalAgeMonths);
+  const statutoryAge = formatAge(statutoryAgeMonths);
+  const finalAge = formatAge(finalAgeMonths);
+  const flexText =
+    flexMode === "early"
+      ? `弹性提前 ${statutoryAgeMonths - finalAgeMonths} 个月`
+      : flexMode === "late"
+        ? `弹性延迟 ${normalizedFlexMonths} 个月`
+        : "未选择弹性调整";
+
+  return {
+    date: formatInputDate(finalDate),
+    note: `${rule.label}；改革后法定退休年龄 ${statutoryAge}，延迟 ${delayMonths} 个月；${flexText}；当前计算退休年龄 ${finalAge}。`,
+  };
+}
+
+function calculateDelayMonths(birth, rule) {
+  const startIndex = rule.reformStart.year * 12 + (rule.reformStart.month - 1);
+  const birthIndex = birth.getFullYear() * 12 + birth.getMonth();
+  const monthsAfterStart = birthIndex - startIndex;
+  if (monthsAfterStart < 0) return 0;
+
+  const delayMonths = Math.floor(monthsAfterStart / rule.monthsPerDelayMonth) + 1;
+  return Math.min(delayMonths, rule.maxDelayMonths);
 }
 
 function updateCountdown() {
@@ -305,6 +442,39 @@ function getNextReminderTime(time) {
     next.setDate(next.getDate() + 1);
   }
   return next;
+}
+
+function addMonths(date, months) {
+  const copy = new Date(date);
+  const day = copy.getDate();
+  copy.setDate(1);
+  copy.setMonth(copy.getMonth() + months);
+  const lastDay = new Date(copy.getFullYear(), copy.getMonth() + 1, 0).getDate();
+  copy.setDate(Math.min(day, lastDay));
+  return startOfDay(copy);
+}
+
+function parseDateOnly(value) {
+  return startOfDay(new Date(`${value}T00:00:00`));
+}
+
+function formatInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatAge(totalMonths) {
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return months ? `${years} 岁 ${months} 个月` : `${years} 岁`;
+}
+
+function normalizeFlexMonths(value) {
+  const number = Number.parseInt(value, 10);
+  if (Number.isNaN(number)) return 0;
+  return Math.min(Math.max(number, 0), 36);
 }
 
 function formatDate(date) {
