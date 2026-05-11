@@ -562,11 +562,15 @@ async function setupBackButton() {
 }
 
 function setupSheetDragToClose() {
-  if (!els.settingsHandle) return;
+  attachDragToClose(els.settingsHandle, els.settingsDialog, closeSettingsDialog);
+  attachDragToClose(els.pickerHandle, els.pickerSheet, closePicker);
+}
+
+function attachDragToClose(handle, dialog, closeFn) {
+  if (!handle || !dialog) return;
   const DRAG_THRESHOLD_PX = 80;
   const VELOCITY_THRESHOLD = 0.5; // px per ms
 
-  const dialog = els.settingsDialog;
   let startY = 0;
   let startTime = 0;
   let dragging = false;
@@ -581,7 +585,7 @@ function setupSheetDragToClose() {
     });
   }
 
-  els.settingsHandle.addEventListener("touchstart", (event) => {
+  handle.addEventListener("touchstart", (event) => {
     if (event.touches.length !== 1) return;
     startY = event.touches[0].clientY;
     startTime = Date.now();
@@ -590,24 +594,24 @@ function setupSheetDragToClose() {
     dialog.style.transition = "none";
   }, { passive: true });
 
-  els.settingsHandle.addEventListener("touchmove", (event) => {
+  handle.addEventListener("touchmove", (event) => {
     if (!dragging || event.touches.length !== 1) return;
     const dy = event.touches[0].clientY - startY;
     translate = Math.max(0, dy);
     dialog.style.transform = `translateY(${translate}px)`;
   }, { passive: true });
 
-  els.settingsHandle.addEventListener("touchend", () => {
+  handle.addEventListener("touchend", () => {
     if (!dragging) return;
     const duration = Math.max(Date.now() - startTime, 1);
     const velocity = translate / duration;
     if (translate > DRAG_THRESHOLD_PX || velocity > VELOCITY_THRESHOLD) {
-      closeSettingsDialog();
+      closeFn();
     }
     reset();
   });
 
-  els.settingsHandle.addEventListener("touchcancel", reset);
+  handle.addEventListener("touchcancel", reset);
 }
 
 function refreshPolicyCalculation() {
@@ -741,7 +745,8 @@ async function setupReminderToggle() {
     saveSettings();
   }
   applyReminderSwitchState();
-  els.remindersToggle.addEventListener("click", toggleReminders);
+  const row = document.querySelector("#reminderSwitchRow");
+  (row ?? els.remindersToggle).addEventListener("click", toggleReminders);
 }
 
 function applyReminderSwitchState() {
