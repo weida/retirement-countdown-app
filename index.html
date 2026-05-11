@@ -12,68 +12,71 @@
   <body data-mood="day">
     <main class="app-shell">
       <article class="countdown-card" aria-label="退休倒计时">
-        <header class="card-top">
-          <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
-          <div class="card-actions">
-            <button class="icon-btn mood-toggle" id="moodToggle" type="button" aria-label="切换情绪主题" title="切换情绪">
-              <svg class="mood-icon mood-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v2"></path><path d="M12 20v2"></path>
-                <path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
-                <path d="M2 12h2"></path><path d="M20 12h2"></path>
-                <path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
-              </svg>
-              <svg class="mood-icon mood-icon--moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path>
-              </svg>
-            </button>
-            <button class="icon-btn" id="openSettings" type="button" aria-label="打开设置" title="设置">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </button>
-          </div>
-        </header>
+        <div class="cluster cluster--top">
+          <header class="card-top">
+            <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
+            <div class="card-actions">
+              <button class="icon-btn mood-toggle" id="moodToggle" type="button" aria-label="切换情绪主题" title="切换情绪">
+                <svg class="mood-icon mood-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2v2"></path><path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path><path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+                <svg class="mood-icon mood-icon--moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path>
+                </svg>
+              </button>
+              <button class="icon-btn" id="openSettings" type="button" aria-label="打开设置" title="设置">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </button>
+            </div>
+          </header>
 
-        <section class="month-band" aria-label="退休年月份带">
-          <div class="band-meta">
-            <span class="band-year" id="bandYear">----</span>
-            <span class="band-caption" id="bandCaption">设置退休日后,这里会显示退休年的工作 / 退休月份。</span>
-          </div>
-          <ol class="month-dots" id="monthDots" aria-hidden="true"></ol>
-        </section>
+          <section class="month-band" aria-label="退休年月份带">
+            <div class="band-meta">
+              <span class="band-year" id="bandYear">----</span>
+              <span class="band-caption" id="bandCaption">设置退休日后,这里会显示退休年的工作 / 退休月份。</span>
+            </div>
+            <ol class="month-dots" id="monthDots" aria-hidden="true"></ol>
+          </section>
+        </div>
 
         <section class="hero">
           <span class="hero-number" id="heroCount">--</span>
           <span class="hero-unit">天</span>
         </section>
 
-        <section class="stamps" aria-label="详细倒计时">
-          <article class="stamp">
-            <strong id="monthsLeft">--</strong>
-            <span>月</span>
-          </article>
-          <article class="stamp">
-            <strong id="weeksLeft">--</strong>
-            <span>周</span>
-          </article>
-          <article class="stamp">
-            <strong id="hoursLeft">--</strong>
-            <span>时</span>
-          </article>
-        </section>
+        <div class="cluster cluster--bottom">
+          <section class="stamps" aria-label="详细倒计时">
+            <article class="stamp">
+              <strong id="monthsLeft">--</strong>
+              <span>月</span>
+            </article>
+            <article class="stamp">
+              <strong id="weeksLeft">--</strong>
+              <span>周</span>
+            </article>
+            <article class="stamp">
+              <strong id="hoursLeft">--</strong>
+              <span>时</span>
+            </article>
+          </section>
 
-        <footer class="card-foot">
-          <span id="todayLabel">今天</span>
-          <span class="dot-sep" aria-hidden="true">·</span>
-          <span id="targetLabel">退休日未设置</span>
-          <span class="dot-sep" aria-hidden="true">·</span>
-          <span id="retirementStatus">设置退休日期后开始倒计时。</span>
-        </footer>
-      </article>
+          <footer class="card-foot">
+            <span id="todayLabel">今天</span>
+            <span class="dot-sep" aria-hidden="true">·</span>
+            <span id="targetLabel">退休日未设置</span>
+            <span class="dot-sep" aria-hidden="true">·</span>
+            <span id="retirementStatus">设置退休日期后开始倒计时。</span>
+          </footer>
+        </div>
 
-      <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
+        <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
         <form id="settingsForm" method="dialog">
           <header class="dialog-head">
             <h2 id="settingsTitle">退休设置</h2>
@@ -182,7 +185,8 @@
             <button class="primary" type="submit">保存设置</button>
           </footer>
         </form>
-      </dialog>
+        </dialog>
+      </article>
     </main>
 
     <script type="module" src="/src/main.js"></script>
