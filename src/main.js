@@ -171,6 +171,7 @@ function init() {
 
   setupPickers();
   setupSheetDragToClose();
+  setupBackButton();
 
   window.setInterval(updateCountdown, 60 * 1000);
 
@@ -405,6 +406,26 @@ function pickerTitleFor(field) {
     case "workerType": return "人员类型";
     case "flexMode": return "弹性退休";
     default: return "选择";
+  }
+}
+
+async function setupBackButton() {
+  if (!isNative()) return;
+  try {
+    const { App } = await import("@capacitor/app");
+    App.addListener("backButton", () => {
+      if (els.pickerSheet.open) {
+        closePicker();
+        return;
+      }
+      if (els.settingsDialog.open) {
+        closeSettingsDialog();
+        return;
+      }
+      App.minimizeApp();
+    });
+  } catch {
+    // App plugin unavailable; let default behavior take over
   }
 }
 
