@@ -122,8 +122,8 @@ select {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 24px;
+  justify-content: center;
+  gap: clamp(20px, 4vh, 36px);
   position: relative;
   overflow: hidden;
   transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
@@ -796,7 +796,7 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 
   .countdown-card {
     border-radius: 22px;
-    gap: 20px;
+    gap: clamp(16px, 3vh, 28px);
     padding: 24px;
   }
 
