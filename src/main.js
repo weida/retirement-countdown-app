@@ -115,7 +115,15 @@ function init() {
     element.addEventListener("change", refreshPolicyCalculation);
   });
 
-  els.flexMonths.addEventListener("input", () => updateFlexSliderDisplay(els.flexMonths.value));
+  let lastSliderValue = -1;
+  els.flexMonths.addEventListener("input", () => {
+    const value = normalizeFlexMonths(els.flexMonths.value);
+    updateFlexSliderDisplay(value);
+    if ((value === 0 || value === FLEX_LIMIT_MONTHS) && lastSliderValue !== value) {
+      triggerHaptic();
+    }
+    lastSliderValue = value;
+  });
 
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -143,6 +151,7 @@ function init() {
     }
 
     saveSettings();
+    triggerHaptic("Medium");
     updateCountdown();
     await scheduleReminder();
     closeSettingsDialog();
@@ -154,6 +163,7 @@ function init() {
     settings.mood = settings.mood === "dusk" ? "day" : "dusk";
     saveSettings();
     applyMood();
+    triggerHaptic();
   });
 
   els.openSettings.addEventListener("click", openSettingsDialog);
@@ -245,12 +255,24 @@ async function applyStatusBar(mood) {
   }
 }
 
+async function triggerHaptic(style = "Light") {
+  if (!isNative()) return;
+  try {
+    const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
+    const impact = style === "Medium" ? ImpactStyle.Medium : ImpactStyle.Light;
+    await Haptics.impact({ style: impact });
+  } catch {
+    // plugin or hardware unavailable; ignore
+  }
+}
+
 function openSettingsDialog() {
   if (typeof els.settingsDialog.showModal === "function") {
     els.settingsDialog.showModal();
   } else {
     els.settingsDialog.setAttribute("open", "");
   }
+  triggerHaptic();
 }
 
 function closeSettingsDialog() {
@@ -259,6 +281,7 @@ function closeSettingsDialog() {
   } else {
     els.settingsDialog.removeAttribute("open");
   }
+  triggerHaptic();
 }
 
 let _activePickerTrigger = null;
@@ -373,6 +396,7 @@ function setPickerValue(field, value, label) {
   if (labelEl) labelEl.textContent = label;
   input.dispatchEvent(new Event("input", { bubbles: true }));
   input.dispatchEvent(new Event("change", { bubbles: true }));
+  triggerHaptic();
 }
 
 function pickerTitleFor(field) {
