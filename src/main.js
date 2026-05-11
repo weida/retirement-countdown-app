@@ -48,6 +48,7 @@ const els = {
   openSettings: document.querySelector("#openSettings"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsDialog: document.querySelector("#settingsDialog"),
+  settingsHandle: document.querySelector("#settingsHandle"),
   bandYear: document.querySelector("#bandYear"),
   bandCaption: document.querySelector("#bandCaption"),
   monthDots: document.querySelector("#monthDots"),
@@ -133,6 +134,8 @@ function init() {
   els.openSettings.addEventListener("click", openSettingsDialog);
   els.closeSettings.addEventListener("click", closeSettingsDialog);
 
+  setupSheetDragToClose();
+
   window.setInterval(updateCountdown, 60 * 1000);
 
   if (!isNative() && "serviceWorker" in navigator) {
@@ -207,6 +210,55 @@ function closeSettingsDialog() {
   } else {
     els.settingsDialog.removeAttribute("open");
   }
+}
+
+function setupSheetDragToClose() {
+  if (!els.settingsHandle) return;
+  const DRAG_THRESHOLD_PX = 80;
+  const VELOCITY_THRESHOLD = 0.5; // px per ms
+
+  const dialog = els.settingsDialog;
+  let startY = 0;
+  let startTime = 0;
+  let dragging = false;
+  let translate = 0;
+
+  function reset() {
+    dragging = false;
+    dialog.style.transition = "transform 0.25s cubic-bezier(.2,.7,.2,1)";
+    dialog.style.transform = "";
+    requestAnimationFrame(() => {
+      dialog.style.transition = "";
+    });
+  }
+
+  els.settingsHandle.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1) return;
+    startY = event.touches[0].clientY;
+    startTime = Date.now();
+    translate = 0;
+    dragging = true;
+    dialog.style.transition = "none";
+  }, { passive: true });
+
+  els.settingsHandle.addEventListener("touchmove", (event) => {
+    if (!dragging || event.touches.length !== 1) return;
+    const dy = event.touches[0].clientY - startY;
+    translate = Math.max(0, dy);
+    dialog.style.transform = `translateY(${translate}px)`;
+  }, { passive: true });
+
+  els.settingsHandle.addEventListener("touchend", () => {
+    if (!dragging) return;
+    const duration = Math.max(Date.now() - startTime, 1);
+    const velocity = translate / duration;
+    if (translate > DRAG_THRESHOLD_PX || velocity > VELOCITY_THRESHOLD) {
+      closeSettingsDialog();
+    }
+    reset();
+  });
+
+  els.settingsHandle.addEventListener("touchcancel", reset);
 }
 
 function refreshPolicyCalculation() {
