@@ -247,6 +247,8 @@ function closeSettingsDialog() {
   }
 }
 
+let _activePickerTrigger = null;
+
 function setupPickers() {
   document.querySelectorAll(".picker-trigger").forEach((trigger) => {
     trigger.addEventListener("click", () => openPicker(trigger.dataset.picker));
@@ -254,6 +256,26 @@ function setupPickers() {
   els.pickerClose.addEventListener("click", closePicker);
   els.pickerSheet.addEventListener("click", (event) => {
     if (event.target === els.pickerSheet) closePicker();
+  });
+  els.pickerOptions.addEventListener("keydown", (event) => {
+    const options = Array.from(els.pickerOptions.querySelectorAll(".picker-option"));
+    const focused = document.activeElement;
+    const idx = options.indexOf(focused);
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = options[(idx + 1) % options.length];
+      next?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const prev = options[(idx - 1 + options.length) % options.length];
+      prev?.focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (focused && options.includes(focused)) focused.click();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closePicker();
+    }
   });
 }
 
@@ -266,15 +288,22 @@ function openPicker(field) {
   const input = document.getElementById(field);
   const currentValue = input?.value ?? "";
 
+  _activePickerTrigger = document.querySelector(`.picker-trigger[data-picker="${field}"]`);
+  if (_activePickerTrigger) _activePickerTrigger.setAttribute("aria-expanded", "true");
+
   els.pickerTitle.textContent = pickerTitleFor(field);
   els.pickerOptions.replaceChildren();
 
+  let selectedLi = null;
   options.forEach((opt) => {
     const li = document.createElement("li");
     li.className = "picker-option";
     li.setAttribute("role", "option");
+    li.setAttribute("tabindex", "0");
     li.dataset.value = opt.value;
-    li.setAttribute("aria-selected", String(opt.value === currentValue));
+    const isSelected = opt.value === currentValue;
+    li.setAttribute("aria-selected", String(isSelected));
+    if (isSelected) selectedLi = li;
     const text = document.createElement("span");
     text.textContent = opt.label;
     li.appendChild(text);
@@ -305,9 +334,16 @@ function openPicker(field) {
   } else {
     els.pickerSheet.setAttribute("open", "");
   }
+
+  const focusTarget = selectedLi ?? els.pickerOptions.querySelector(".picker-option");
+  if (focusTarget) focusTarget.focus();
 }
 
 function closePicker() {
+  if (_activePickerTrigger) {
+    _activePickerTrigger.setAttribute("aria-expanded", "false");
+    _activePickerTrigger = null;
+  }
   if (typeof els.pickerSheet.close === "function") {
     els.pickerSheet.close();
   } else {
