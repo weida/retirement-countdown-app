@@ -6,12 +6,7 @@
     <meta name="theme-color" content="#f7f4ed" />
     <title>退休倒计时</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap"
-    />
+    <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-mood="day">
@@ -125,9 +120,18 @@
               </select>
             </label>
 
-            <label class="stack" id="flexMonthsLabel">
-              <span>弹性月数</span>
-              <input id="flexMonths" type="number" min="0" max="36" step="1" value="0" />
+            <label class="stack slider-field" id="flexMonthsLabel">
+              <span class="slider-head">
+                <span>弹性月数</span>
+                <strong id="flexMonthsValue" aria-live="polite">0 个月</strong>
+              </span>
+              <input id="flexMonths" type="range" min="0" max="36" step="1" value="0" aria-valuemin="0" aria-valuemax="36" />
+              <span class="slider-scale" aria-hidden="true">
+                <span>0</span>
+                <span>12</span>
+                <span>24</span>
+                <span>36</span>
+              </span>
             </label>
 
             <div class="policy-result" id="policyResult" role="group" aria-label="政策计算结果" hidden>
