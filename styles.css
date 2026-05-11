@@ -979,6 +979,22 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   word-break: break-word;
 }
 
+.birthdate-stack .date-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 10px;
+}
+
+.date-cell {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.date-cell .picker-value {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .picker-trigger svg {
   flex-shrink: 0;
   color: var(--muted);

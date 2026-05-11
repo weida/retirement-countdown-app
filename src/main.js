@@ -27,6 +27,10 @@ const defaults = {
   mood: "day",
 };
 
+const BIRTH_YEAR_MIN = 1955;
+const BIRTH_YEAR_MAX = 2010;
+const BIRTH_YEAR_DEFAULT_FOCUS = "1970";
+
 const PICKER_OPTIONS = {
   calculationMode: [
     { value: "policy", label: "按中国法定退休政策自动计算" },
@@ -42,6 +46,32 @@ const PICKER_OPTIONS = {
     { value: "early", label: "弹性提前退休,提前 3 年内" },
     { value: "late", label: "弹性延迟退休,延迟 3 年内" },
   ],
+  birthYear: Array.from({ length: BIRTH_YEAR_MAX - BIRTH_YEAR_MIN + 1 }, (_, i) => {
+    const y = BIRTH_YEAR_MIN + i;
+    return { value: String(y), label: `${y} 年` };
+  }),
+  birthMonth: Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1} 月`,
+  })),
+};
+
+const DYNAMIC_PICKER_OPTIONS = {
+  birthDay: () => {
+    const year = parseInt(document.getElementById("birthYear").value || BIRTH_YEAR_DEFAULT_FOCUS, 10);
+    const month = parseInt(document.getElementById("birthMonth").value || "1", 10);
+    const dayCount = new Date(year, month, 0).getDate();
+    return Array.from({ length: dayCount }, (_, i) => ({
+      value: String(i + 1),
+      label: `${i + 1} 日`,
+    }));
+  },
+};
+
+const PICKER_DEFAULT_FOCUS = {
+  birthYear: BIRTH_YEAR_DEFAULT_FOCUS,
+  birthMonth: "1",
+  birthDay: "1",
 };
 
 const els = {
@@ -83,6 +113,12 @@ const els = {
   calculationModeLabel: document.querySelector("#calculationModeLabel"),
   workerTypeLabel: document.querySelector("#workerTypeLabel"),
   flexModeLabel: document.querySelector("#flexModeLabel"),
+  birthYear: document.querySelector("#birthYear"),
+  birthMonth: document.querySelector("#birthMonth"),
+  birthDay: document.querySelector("#birthDay"),
+  birthYearLabel: document.querySelector("#birthYearLabel"),
+  birthMonthLabel: document.querySelector("#birthMonthLabel"),
+  birthDayLabel: document.querySelector("#birthDayLabel"),
   pickerSheet: document.querySelector("#pickerSheet"),
   pickerTitle: document.querySelector("#pickerTitle"),
   pickerOptions: document.querySelector("#pickerOptions"),
@@ -209,7 +245,7 @@ function saveSettings() {
 
 function applySettingsToForm() {
   setHiddenAndLabel("calculationMode", settings.calculationMode);
-  els.birthDate.value = settings.birthDate;
+  applyBirthDateToForm(settings.birthDate);
   setHiddenAndLabel("workerType", settings.workerType);
   setHiddenAndLabel("flexMode", settings.flexMode);
   els.flexMonths.value = settings.flexMonths;
@@ -226,6 +262,46 @@ function setHiddenAndLabel(field, value) {
   input.value = value;
   const option = (PICKER_OPTIONS[field] || []).find((opt) => opt.value === value);
   if (labelEl && option) labelEl.textContent = option.label;
+}
+
+function applyBirthDateToForm(iso) {
+  els.birthDate.value = iso || "";
+  if (!iso) {
+    els.birthYear.value = "";
+    els.birthMonth.value = "";
+    els.birthDay.value = "";
+    els.birthYearLabel.textContent = "年";
+    els.birthMonthLabel.textContent = "月";
+    els.birthDayLabel.textContent = "日";
+    return;
+  }
+  const [y, m, d] = iso.split("-");
+  els.birthYear.value = String(parseInt(y, 10));
+  els.birthMonth.value = String(parseInt(m, 10));
+  els.birthDay.value = String(parseInt(d, 10));
+  els.birthYearLabel.textContent = `${parseInt(y, 10)} 年`;
+  els.birthMonthLabel.textContent = `${parseInt(m, 10)} 月`;
+  els.birthDayLabel.textContent = `${parseInt(d, 10)} 日`;
+}
+
+function syncBirthDateFromParts() {
+  const y = els.birthYear.value;
+  const m = els.birthMonth.value;
+  let d = els.birthDay.value;
+
+  if (y && m && d) {
+    const maxDay = new Date(Number(y), Number(m), 0).getDate();
+    if (Number(d) > maxDay) {
+      d = String(maxDay);
+      els.birthDay.value = d;
+      els.birthDayLabel.textContent = `${maxDay} 日`;
+    }
+    els.birthDate.value = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  } else {
+    els.birthDate.value = "";
+  }
+  els.birthDate.dispatchEvent(new Event("input", { bubbles: true }));
+  els.birthDate.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 function updateFlexSliderDisplay(rawValue) {
@@ -318,7 +394,7 @@ function setupPickers() {
 }
 
 function openPicker(field) {
-  const options = PICKER_OPTIONS[field];
+  const options = DYNAMIC_PICKER_OPTIONS[field]?.() ?? PICKER_OPTIONS[field];
   if (!options) {
     console.warn(`Unknown picker field: ${field}`);
     return;
@@ -373,8 +449,18 @@ function openPicker(field) {
     els.pickerSheet.setAttribute("open", "");
   }
 
-  const focusTarget = selectedLi ?? els.pickerOptions.querySelector(".picker-option");
-  if (focusTarget) focusTarget.focus();
+  let focusTarget = selectedLi;
+  if (!focusTarget) {
+    const defaultValue = PICKER_DEFAULT_FOCUS[field];
+    if (defaultValue) {
+      focusTarget = els.pickerOptions.querySelector(`.picker-option[data-value="${defaultValue}"]`);
+    }
+  }
+  focusTarget = focusTarget ?? els.pickerOptions.querySelector(".picker-option");
+  if (focusTarget) {
+    focusTarget.focus();
+    focusTarget.scrollIntoView({ block: "center" });
+  }
 }
 
 function closePicker() {
@@ -395,8 +481,13 @@ function setPickerValue(field, value, label) {
   if (!input) return;
   input.value = value;
   if (labelEl) labelEl.textContent = label;
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+
+  if (field === "birthYear" || field === "birthMonth" || field === "birthDay") {
+    syncBirthDateFromParts();
+  } else {
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
   triggerHaptic();
 }
 
@@ -405,6 +496,9 @@ function pickerTitleFor(field) {
     case "calculationMode": return "计算方式";
     case "workerType": return "人员类型";
     case "flexMode": return "弹性退休";
+    case "birthYear": return "出生年份";
+    case "birthMonth": return "出生月份";
+    case "birthDay": return "出生日";
     default: return "选择";
   }
 }

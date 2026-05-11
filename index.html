@@ -106,10 +106,33 @@
 
           <fieldset class="dialog-group policy-fields" id="policyFields">
             <legend>政策参数</legend>
-            <label class="stack">
+            <div class="stack birthdate-stack">
               <span>出生日期</span>
-              <input id="birthDate" type="date" />
-            </label>
+              <div class="date-row" role="group" aria-label="出生日期">
+                <button type="button" class="picker-trigger date-cell" data-picker="birthYear" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="birthYearLabel">年</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="birthMonth" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="birthMonthLabel">月</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="birthDay" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="birthDayLabel">日</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+              </div>
+              <input type="hidden" id="birthDate" />
+              <input type="hidden" id="birthYear" />
+              <input type="hidden" id="birthMonth" />
+              <input type="hidden" id="birthDay" />
+            </div>
 
             <label class="stack picker-stack">
               <span>人员类型</span>
