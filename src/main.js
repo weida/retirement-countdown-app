@@ -229,6 +229,20 @@ function applyMood() {
   els.moodToggle.title = mood === "dusk" ? "切换到白昼" : "切换到傍晚";
   const themeColor = mood === "dusk" ? "#1a1411" : "#f7f4ed";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+  applyStatusBar(mood);
+}
+
+async function applyStatusBar(mood) {
+  if (!isNative()) return;
+  try {
+    const { StatusBar, Style } = await import("@capacitor/status-bar");
+    await StatusBar.setStyle({ style: mood === "dusk" ? Style.Dark : Style.Light });
+    if (Capacitor.getPlatform() === "android") {
+      await StatusBar.setBackgroundColor({ color: mood === "dusk" ? "#1a1411" : "#f7f4ed" });
+    }
+  } catch {
+    // plugin unavailable or unsupported on this device; ignore
+  }
 }
 
 function openSettingsDialog() {
