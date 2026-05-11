@@ -92,12 +92,15 @@
 
           <fieldset class="dialog-group">
             <legend>计算方式</legend>
-            <label class="stack">
+            <label class="stack picker-stack">
               <span>方式</span>
-              <select id="calculationMode">
-                <option value="policy">按中国法定退休政策自动计算</option>
-                <option value="manual">手动设置退休日期</option>
-              </select>
+              <button type="button" class="picker-trigger" data-picker="calculationMode" aria-haspopup="listbox">
+                <span class="picker-value" id="calculationModeLabel">按中国法定退休政策自动计算</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+              <input type="hidden" id="calculationMode" value="policy" />
             </label>
           </fieldset>
 
@@ -108,22 +111,26 @@
               <input id="birthDate" type="date" />
             </label>
 
-            <label class="stack">
+            <label class="stack picker-stack">
               <span>人员类型</span>
-              <select id="workerType">
-                <option value="male">男职工:原 60 岁退休</option>
-                <option value="female55">女职工:原 55 岁退休</option>
-                <option value="female50">女职工:原 50 岁退休</option>
-              </select>
+              <button type="button" class="picker-trigger" data-picker="workerType" aria-haspopup="listbox">
+                <span class="picker-value" id="workerTypeLabel">男职工:原 60 岁退休</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+              <input type="hidden" id="workerType" value="male" />
             </label>
 
-            <label class="stack">
+            <label class="stack picker-stack">
               <span>弹性退休</span>
-              <select id="flexMode">
-                <option value="statutory">按改革后法定退休年龄</option>
-                <option value="early">弹性提前退休,提前 3 年内</option>
-                <option value="late">弹性延迟退休,延迟 3 年内</option>
-              </select>
+              <button type="button" class="picker-trigger" data-picker="flexMode" aria-haspopup="listbox">
+                <span class="picker-value" id="flexModeLabel">按改革后法定退休年龄</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+              <input type="hidden" id="flexMode" value="statutory" />
             </label>
 
             <label class="stack slider-field" id="flexMonthsLabel">
@@ -188,6 +195,20 @@
             <button class="primary" type="submit">保存设置</button>
           </footer>
         </form>
+        </dialog>
+        <dialog class="picker-sheet" id="pickerSheet" aria-labelledby="pickerTitle">
+          <button type="button" class="sheet-handle" id="pickerHandle" aria-label="拖拽下拉关闭">
+            <span class="sheet-handle-bar" aria-hidden="true"></span>
+          </button>
+          <header class="picker-head">
+            <h3 id="pickerTitle">选择</h3>
+            <button type="button" class="icon-btn" id="pickerClose" aria-label="关闭">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </header>
+          <ul class="picker-options" id="pickerOptions" role="listbox"></ul>
         </dialog>
       </article>
     </main>

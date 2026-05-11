@@ -26,6 +26,23 @@ const defaults = {
   mood: "day",
 };
 
+const PICKER_OPTIONS = {
+  calculationMode: [
+    { value: "policy", label: "按中国法定退休政策自动计算" },
+    { value: "manual", label: "手动设置退休日期" },
+  ],
+  workerType: [
+    { value: "male", label: "男职工:原 60 岁退休" },
+    { value: "female55", label: "女职工:原 55 岁退休" },
+    { value: "female50", label: "女职工:原 50 岁退休" },
+  ],
+  flexMode: [
+    { value: "statutory", label: "按改革后法定退休年龄" },
+    { value: "early", label: "弹性提前退休,提前 3 年内" },
+    { value: "late", label: "弹性延迟退休,延迟 3 年内" },
+  ],
+};
+
 const els = {
   form: document.querySelector("#settingsForm"),
   calculationMode: document.querySelector("#calculationMode"),
@@ -61,6 +78,14 @@ const els = {
   status: document.querySelector("#retirementStatus"),
   nextReminder: document.querySelector("#nextReminder"),
   permissionState: document.querySelector("#permissionState"),
+  calculationModeLabel: document.querySelector("#calculationModeLabel"),
+  workerTypeLabel: document.querySelector("#workerTypeLabel"),
+  flexModeLabel: document.querySelector("#flexModeLabel"),
+  pickerSheet: document.querySelector("#pickerSheet"),
+  pickerTitle: document.querySelector("#pickerTitle"),
+  pickerOptions: document.querySelector("#pickerOptions"),
+  pickerClose: document.querySelector("#pickerClose"),
+  pickerHandle: document.querySelector("#pickerHandle"),
 };
 
 let settings = loadSettings();
@@ -134,6 +159,7 @@ function init() {
   els.openSettings.addEventListener("click", openSettingsDialog);
   els.closeSettings.addEventListener("click", closeSettingsDialog);
 
+  setupPickers();
   setupSheetDragToClose();
 
   window.setInterval(updateCountdown, 60 * 1000);
@@ -171,15 +197,24 @@ function saveSettings() {
 }
 
 function applySettingsToForm() {
-  els.calculationMode.value = settings.calculationMode;
+  setHiddenAndLabel("calculationMode", settings.calculationMode);
   els.birthDate.value = settings.birthDate;
-  els.workerType.value = settings.workerType;
-  els.flexMode.value = settings.flexMode;
+  setHiddenAndLabel("workerType", settings.workerType);
+  setHiddenAndLabel("flexMode", settings.flexMode);
   els.flexMonths.value = settings.flexMonths;
   updateFlexSliderDisplay(settings.flexMonths);
   els.retireDate.value = settings.retireDate;
   els.reminderTime.value = settings.reminderTime;
   els.reminderText.value = settings.reminderText;
+}
+
+function setHiddenAndLabel(field, value) {
+  const input = document.getElementById(field);
+  const labelEl = document.getElementById(`${field}Label`);
+  if (!input) return;
+  input.value = value;
+  const option = (PICKER_OPTIONS[field] || []).find((opt) => opt.value === value);
+  if (labelEl && option) labelEl.textContent = option.label;
 }
 
 function updateFlexSliderDisplay(rawValue) {
@@ -209,6 +244,93 @@ function closeSettingsDialog() {
     els.settingsDialog.close();
   } else {
     els.settingsDialog.removeAttribute("open");
+  }
+}
+
+function setupPickers() {
+  document.querySelectorAll(".picker-trigger").forEach((trigger) => {
+    trigger.addEventListener("click", () => openPicker(trigger.dataset.picker));
+  });
+  els.pickerClose.addEventListener("click", closePicker);
+  els.pickerSheet.addEventListener("click", (event) => {
+    if (event.target === els.pickerSheet) closePicker();
+  });
+}
+
+function openPicker(field) {
+  const options = PICKER_OPTIONS[field];
+  if (!options) {
+    console.warn(`Unknown picker field: ${field}`);
+    return;
+  }
+  const input = document.getElementById(field);
+  const currentValue = input?.value ?? "";
+
+  els.pickerTitle.textContent = pickerTitleFor(field);
+  els.pickerOptions.replaceChildren();
+
+  options.forEach((opt) => {
+    const li = document.createElement("li");
+    li.className = "picker-option";
+    li.setAttribute("role", "option");
+    li.dataset.value = opt.value;
+    li.setAttribute("aria-selected", String(opt.value === currentValue));
+    const text = document.createElement("span");
+    text.textContent = opt.label;
+    li.appendChild(text);
+    const check = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    check.setAttribute("class", "check");
+    check.setAttribute("viewBox", "0 0 24 24");
+    check.setAttribute("width", "18");
+    check.setAttribute("height", "18");
+    check.setAttribute("fill", "none");
+    check.setAttribute("stroke", "currentColor");
+    check.setAttribute("stroke-width", "2.4");
+    check.setAttribute("stroke-linecap", "round");
+    check.setAttribute("stroke-linejoin", "round");
+    check.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M5 12l4 4L19 7");
+    check.appendChild(path);
+    li.appendChild(check);
+    li.addEventListener("click", () => {
+      setPickerValue(field, opt.value, opt.label);
+      closePicker();
+    });
+    els.pickerOptions.appendChild(li);
+  });
+
+  if (typeof els.pickerSheet.showModal === "function") {
+    els.pickerSheet.showModal();
+  } else {
+    els.pickerSheet.setAttribute("open", "");
+  }
+}
+
+function closePicker() {
+  if (typeof els.pickerSheet.close === "function") {
+    els.pickerSheet.close();
+  } else {
+    els.pickerSheet.removeAttribute("open");
+  }
+}
+
+function setPickerValue(field, value, label) {
+  const input = document.getElementById(field);
+  const labelEl = document.getElementById(`${field}Label`);
+  if (!input) return;
+  input.value = value;
+  if (labelEl) labelEl.textContent = label;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function pickerTitleFor(field) {
+  switch (field) {
+    case "calculationMode": return "计算方式";
+    case "workerType": return "人员类型";
+    case "flexMode": return "弹性退休";
+    default: return "选择";
   }
 }
 
