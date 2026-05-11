@@ -22,6 +22,7 @@ const defaults = {
   retireDate: "",
   reminderTime: "09:00",
   reminderText: "今天也离退休更近了一天",
+  remindersEnabled: null,
   retirementReachedNotified: false,
   mood: "day",
 };
@@ -60,7 +61,9 @@ const els = {
   finalResult: document.querySelector("#finalResult"),
   reminderTime: document.querySelector("#reminderTime"),
   reminderText: document.querySelector("#reminderText"),
-  notifyButton: document.querySelector("#notifyButton"),
+  remindersToggle: document.querySelector("#remindersToggle"),
+  reminderDetails: document.querySelector("#reminderDetails"),
+  reminderStatus: document.querySelector("#reminderStatus"),
   moodToggle: document.querySelector("#moodToggle"),
   openSettings: document.querySelector("#openSettings"),
   closeSettings: document.querySelector("#closeSettings"),
@@ -77,7 +80,6 @@ const els = {
   hoursLeft: document.querySelector("#hoursLeft"),
   status: document.querySelector("#retirementStatus"),
   nextReminder: document.querySelector("#nextReminder"),
-  permissionState: document.querySelector("#permissionState"),
   calculationModeLabel: document.querySelector("#calculationModeLabel"),
   workerTypeLabel: document.querySelector("#workerTypeLabel"),
   flexModeLabel: document.querySelector("#flexModeLabel"),
@@ -101,7 +103,7 @@ function init() {
   applyMood();
   refreshPolicyCalculation();
   updateCountdown();
-  updatePermissionState();
+  setupReminderToggle();
   scheduleReminder();
 
   [
@@ -156,8 +158,6 @@ function init() {
     await scheduleReminder();
     closeSettingsDialog();
   });
-
-  els.notifyButton.addEventListener("click", requestNotifications);
 
   els.moodToggle.addEventListener("click", () => {
     settings.mood = settings.mood === "dusk" ? "day" : "dusk";
@@ -603,14 +603,47 @@ function renderMonthBand(target) {
   }
 }
 
-async function requestNotifications() {
-  if (isNative()) {
-    const permission = await LocalNotifications.requestPermissions();
-    await ensureAndroidNotificationChannel();
-    updatePermissionState();
+async function setupReminderToggle() {
+  if (settings.remindersEnabled === null || settings.remindersEnabled === undefined) {
+    settings.remindersEnabled = await isNotificationPermissionGranted();
+    saveSettings();
+  }
+  applyReminderSwitchState();
+  els.remindersToggle.addEventListener("click", toggleReminders);
+}
 
-    if (permission.display === "granted") {
-      await scheduleReminder();
+function applyReminderSwitchState() {
+  const on = !!settings.remindersEnabled;
+  els.remindersToggle.setAttribute("aria-checked", String(on));
+  els.reminderDetails.dataset.open = String(on);
+  els.reminderDetails.setAttribute("aria-hidden", String(!on));
+  els.reminderStatus.classList.remove("warning");
+  els.reminderStatus.textContent = on ? "已开启" : "已关闭";
+}
+
+async function toggleReminders() {
+  const target = !settings.remindersEnabled;
+  triggerHaptic();
+
+  if (target) {
+    const granted = await ensureNotificationPermission();
+    if (!granted) {
+      els.reminderStatus.textContent = "通知被拒绝,请到系统设置开启";
+      els.reminderStatus.classList.add("warning");
+      triggerHaptic("Medium");
+      return;
+    }
+  } else {
+    await cancelNativeReminder();
+  }
+
+  settings.remindersEnabled = target;
+  saveSettings();
+  applyReminderSwitchState();
+  await scheduleReminder();
+
+  if (target && isNative()) {
+    try {
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -621,26 +654,49 @@ async function requestNotifications() {
           },
         ],
       });
-    }
-    return;
-  }
-
-  if (!("Notification" in window)) {
-    updatePermissionState("当前浏览器不支持通知");
-    return;
-  }
-
-  const permission = await Notification.requestPermission();
-  updatePermissionState();
-
-  if (permission === "granted") {
+    } catch {}
+  } else if (target && !isNative()) {
     showWebNotification("退休倒计时已开启", "之后会按你设置的时间提醒。");
-    scheduleReminder();
   }
+}
+
+async function isNotificationPermissionGranted() {
+  if (isNative()) {
+    try {
+      const perm = await LocalNotifications.checkPermissions();
+      return perm.display === "granted";
+    } catch {
+      return false;
+    }
+  }
+  return "Notification" in window && Notification.permission === "granted";
+}
+
+async function ensureNotificationPermission() {
+  if (isNative()) {
+    try {
+      const perm = await LocalNotifications.requestPermissions();
+      await ensureAndroidNotificationChannel();
+      return perm.display === "granted";
+    } catch {
+      return false;
+    }
+  }
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
 }
 
 async function scheduleReminder() {
   window.clearTimeout(reminderTimer);
+
+  if (!settings.remindersEnabled) {
+    els.nextReminder.textContent = "未启用";
+    await cancelNativeReminder();
+    return;
+  }
 
   if (!settings.retireDate || !settings.reminderTime) {
     els.nextReminder.textContent = "未设置";
@@ -790,36 +846,6 @@ function showWebNotification(title, body) {
     icon: "/icon.svg",
     tag: "retirement-countdown",
   });
-}
-
-async function updatePermissionState(customText) {
-  if (customText) {
-    els.permissionState.textContent = customText;
-    els.permissionState.classList.add("warning");
-    return;
-  }
-
-  if (isNative()) {
-    const permission = await LocalNotifications.checkPermissions();
-    const granted = permission.display === "granted";
-    els.permissionState.textContent = granted ? "通知已开启" : "通知未开启";
-    els.permissionState.classList.toggle("warning", !granted);
-    return;
-  }
-
-  const supported = "Notification" in window;
-  const permission = supported ? Notification.permission : "unsupported";
-  els.permissionState.classList.toggle("warning", permission !== "granted");
-
-  if (!supported) {
-    els.permissionState.textContent = "不支持通知";
-  } else if (permission === "granted") {
-    els.permissionState.textContent = "通知已开启";
-  } else if (permission === "denied") {
-    els.permissionState.textContent = "通知被拒绝";
-  } else {
-    els.permissionState.textContent = "通知未开启";
-  }
 }
 
 function getNextReminderTime(time) {

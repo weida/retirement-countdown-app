@@ -679,9 +679,8 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 
 .reminder-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -694,9 +693,103 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 }
 
 .reminder-card strong {
-  display: block;
-  margin-top: 4px;
   font-size: 0.96rem;
+}
+
+.reminder-group {
+  gap: 0;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.switch-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switch-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.switch-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.switch-hint.warning {
+  color: var(--warning);
+}
+
+.ios-switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-switch[aria-checked="true"] {
+  background: var(--accent);
+}
+
+.ios-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s ease;
+}
+
+.ios-switch[aria-checked="true"] .ios-switch-knob {
+  transform: translateX(22px);
+}
+
+.ios-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reminder-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease, margin-top 0.3s ease, opacity 0.25s ease;
+  margin-top: 0;
+  opacity: 0;
+}
+
+.reminder-details > .reminder-details-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.reminder-details[data-open="true"] {
+  grid-template-rows: 1fr;
+  margin-top: 14px;
+  opacity: 1;
 }
 
 .pill {

@@ -169,29 +169,39 @@
             </label>
           </fieldset>
 
-          <fieldset class="dialog-group">
+          <fieldset class="dialog-group reminder-group">
             <legend>每日提醒</legend>
-            <label class="stack">
-              <span>提醒时间</span>
-              <input id="reminderTime" type="time" required />
-            </label>
+            <div class="switch-row">
+              <span class="switch-label">
+                <span class="switch-title">启用每日提醒</span>
+                <span class="switch-hint" id="reminderStatus">已关闭</span>
+              </span>
+              <button type="button" role="switch" id="remindersToggle" aria-checked="false" aria-label="启用每日提醒" class="ios-switch">
+                <span class="ios-switch-knob" aria-hidden="true"></span>
+              </button>
+            </div>
 
-            <label class="stack">
-              <span>提醒文案</span>
-              <input id="reminderText" type="text" maxlength="42" placeholder="今天也离退休更近了一天" />
-            </label>
+            <div class="reminder-details" id="reminderDetails" data-open="false" aria-hidden="true">
+              <div class="reminder-details-inner">
+                <label class="stack">
+                  <span>提醒时间</span>
+                  <input id="reminderTime" type="time" />
+                </label>
 
-            <div class="reminder-card">
-              <div>
-                <span>下一次提醒</span>
-                <strong id="nextReminder">未设置</strong>
+                <label class="stack">
+                  <span>提醒文案</span>
+                  <input id="reminderText" type="text" maxlength="42" placeholder="今天也离退休更近了一天" />
+                </label>
+
+                <div class="reminder-card">
+                  <span>下一次提醒</span>
+                  <strong id="nextReminder">未设置</strong>
+                </div>
               </div>
-              <span class="pill" id="permissionState">通知未开启</span>
             </div>
           </fieldset>
 
           <footer class="dialog-foot">
-            <button class="ghost" id="notifyButton" type="button">开启通知</button>
             <button class="primary" type="submit">保存设置</button>
           </footer>
         </form>
