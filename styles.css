@@ -122,7 +122,7 @@ select {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: space-evenly;
   gap: clamp(26px, 5.5vh, 48px);
   position: relative;
   overflow: hidden;
