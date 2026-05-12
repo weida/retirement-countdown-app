@@ -22,7 +22,7 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* ==== Color schemes ==== */
+/* ==== Mood themes ==== */
 
 :root {
   --bg: #f7f4ed;
@@ -44,23 +44,23 @@
   --serif: "Newsreader", "Noto Serif SC", "Songti SC", Georgia, serif;
 }
 
-body[data-theme="dark"] {
-  --bg: #000;
-  --card: #0d0d0d;
-  --card-edge: rgba(255, 255, 255, 0.06);
-  --text: #f5f5f5;
-  --text-soft: #d4d4d4;
-  --muted: #8a8a8a;
-  --line: #1f1f1f;
-  --line-soft: rgba(255, 255, 255, 0.07);
-  --accent: #4ad6c1;
-  --accent-strong: #6ee5cf;
-  --accent-soft: rgba(74, 214, 193, 0.16);
+body[data-mood="dusk"] {
+  --bg: #1a1411;
+  --card: #2a201a;
+  --card-edge: rgba(212, 167, 106, 0.1);
+  --text: #f0e5d4;
+  --text-soft: #d8cbb6;
+  --muted: #a89886;
+  --line: #3a2e26;
+  --line-soft: rgba(240, 229, 212, 0.08);
+  --accent: #d4a76a;
+  --accent-strong: #e6c08a;
+  --accent-soft: rgba(212, 167, 106, 0.16);
   --warning: #f0b45f;
   --shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 30px 80px -20px rgba(0, 0, 0, 0.85),
-    0 10px 24px -8px rgba(0, 0, 0, 0.6);
+    0 1px 0 rgba(255, 220, 170, 0.06) inset,
+    0 30px 80px -20px rgba(0, 0, 0, 0.55),
+    0 10px 24px -8px rgba(0, 0, 0, 0.35);
 }
 
 /* ==== Base ==== */
@@ -208,22 +208,33 @@ select {
   transform: translateY(0);
 }
 
-.theme-toggle {
-  position: relative;
-}
-
-.theme-toggle .theme-icon {
+.mood-toggle .mood-icon {
   position: absolute;
-  opacity: 0;
-  transform: rotate(-90deg) scale(0.8);
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-body[data-scheme="light"] .theme-icon--sun,
-body[data-scheme="dark"] .theme-icon--moon,
-body[data-scheme="auto"] .theme-icon--auto {
+.mood-toggle {
+  position: relative;
+}
+
+body[data-mood="day"] .mood-icon--sun {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.8);
+}
+
+body[data-mood="day"] .mood-icon--moon {
   opacity: 1;
   transform: rotate(0deg) scale(1);
+}
+
+body[data-mood="dusk"] .mood-icon--sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+body[data-mood="dusk"] .mood-icon--moon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.8);
 }
 
 /* ==== Month band ==== */
@@ -606,18 +617,18 @@ input[type="range"]:active::-moz-range-thumb {
   transform: scale(1.08);
 }
 
-body[data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
-  background: #ffffff;
+body[data-mood="dusk"] input[type="range"]::-webkit-slider-thumb {
+  background: #f5ead4;
   box-shadow:
-    0 0 0 0.5px rgba(255, 255, 255, 0.2),
-    0 6px 14px rgba(0, 0, 0, 0.8);
+    0 0 0 0.5px rgba(255, 220, 170, 0.18),
+    0 6px 14px rgba(0, 0, 0, 0.55);
 }
 
-body[data-theme="dark"] input[type="range"]::-moz-range-thumb {
-  background: #ffffff;
+body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
+  background: #f5ead4;
   box-shadow:
-    0 0 0 0.5px rgba(255, 255, 255, 0.2),
-    0 6px 14px rgba(0, 0, 0, 0.8);
+    0 0 0 0.5px rgba(255, 220, 170, 0.18),
+    0 6px 14px rgba(0, 0, 0, 0.55);
 }
 
 .slider-scale {
