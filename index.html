@@ -9,29 +9,23 @@
     <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-theme="light" data-scheme="auto">
+  <body data-mood="day">
     <main class="app-shell">
       <article class="countdown-card" aria-label="退休倒计时">
         <div class="cluster cluster--top">
           <header class="card-top">
             <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
             <div class="card-actions">
-              <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换主题:跟随系统" title="切换主题">
-                <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <button class="icon-btn mood-toggle" id="moodToggle" type="button" aria-label="切换情绪主题" title="切换情绪">
+                <svg class="mood-icon mood-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4"></circle>
                   <path d="M12 2v2"></path><path d="M12 20v2"></path>
                   <path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
                   <path d="M2 12h2"></path><path d="M20 12h2"></path>
                   <path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
                 </svg>
-                <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg class="mood-icon mood-icon--moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path>
-                </svg>
-                <svg class="theme-icon theme-icon--auto" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="3" y="4" width="18" height="13" rx="2"></rect>
-                  <path d="M8 21h8"></path>
-                  <path d="M12 17v4"></path>
-                  <path d="M12 7.5a3 3 0 1 0 0 6" fill="currentColor" stroke="none"></path>
                 </svg>
               </button>
               <button class="icon-btn" id="openSettings" type="button" aria-label="打开设置" title="设置">

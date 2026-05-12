@@ -24,7 +24,7 @@ const defaults = {
   reminderText: "今天也离退休更近了一天",
   remindersEnabled: null,
   retirementReachedNotified: false,
-  colorScheme: "auto",
+  mood: "day",
 };
 
 const BIRTH_YEAR_MIN = 1955;
@@ -94,7 +94,7 @@ const els = {
   remindersToggle: document.querySelector("#remindersToggle"),
   reminderDetails: document.querySelector("#reminderDetails"),
   reminderStatus: document.querySelector("#reminderStatus"),
-  themeToggle: document.querySelector("#themeToggle"),
+  moodToggle: document.querySelector("#moodToggle"),
   openSettings: document.querySelector("#openSettings"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsDialog: document.querySelector("#settingsDialog"),
@@ -136,8 +136,7 @@ function init() {
   els.flexMonths.max = String(FLEX_LIMIT_MONTHS);
   els.flexMonths.setAttribute("aria-valuemax", String(FLEX_LIMIT_MONTHS));
   applySettingsToForm();
-  applyColorScheme();
-  setupColorSchemeListener();
+  applyMood();
   refreshPolicyCalculation();
   updateCountdown();
   setupReminderToggle();
@@ -196,13 +195,10 @@ function init() {
     closeSettingsDialog();
   });
 
-  els.themeToggle.addEventListener("click", () => {
-    const order = ["light", "dark", "auto"];
-    const current = settings.colorScheme || "auto";
-    const next = order[(order.indexOf(current) + 1) % order.length];
-    settings.colorScheme = next;
+  els.moodToggle.addEventListener("click", () => {
+    settings.mood = settings.mood === "dusk" ? "day" : "dusk";
     saveSettings();
-    applyColorScheme();
+    applyMood();
     triggerHaptic();
   });
 
@@ -227,19 +223,13 @@ function loadSettings() {
   } catch {
     stored = {};
   }
-  let migrated = false;
-  if (stored.dark !== undefined && stored.mood === undefined && stored.colorScheme === undefined) {
-    stored.colorScheme = stored.dark ? "dark" : "light";
+  const needsMigration = stored.dark !== undefined && stored.mood === undefined;
+  if (needsMigration) {
+    stored.mood = stored.dark ? "dusk" : "day";
     delete stored.dark;
-    migrated = true;
-  }
-  if (stored.mood !== undefined && stored.colorScheme === undefined) {
-    stored.colorScheme = stored.mood === "dusk" ? "dark" : "light";
-    delete stored.mood;
-    migrated = true;
   }
   const merged = { ...defaults, ...stored };
-  if (migrated) {
+  if (needsMigration) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     } catch {
@@ -320,50 +310,22 @@ function updateFlexSliderDisplay(rawValue) {
   els.flexMonthsValue.textContent = `${value} 个月`;
 }
 
-const systemDarkQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-function resolveEffectiveTheme() {
-  const scheme = settings.colorScheme || "auto";
-  if (scheme === "light" || scheme === "dark") return scheme;
-  return systemDarkQuery.matches ? "dark" : "light";
-}
-
-function applyColorScheme() {
-  const scheme = settings.colorScheme || "auto";
-  const effective = resolveEffectiveTheme();
-  document.body.dataset.theme = effective;
-  document.body.dataset.scheme = scheme;
-  els.themeToggle.setAttribute("aria-label", themeToggleLabel(scheme));
-  els.themeToggle.title = themeToggleLabel(scheme);
-  const themeColor = effective === "dark" ? "#000000" : "#f7f4ed";
+function applyMood() {
+  const mood = settings.mood === "dusk" ? "dusk" : "day";
+  document.body.dataset.mood = mood;
+  els.moodToggle.title = mood === "dusk" ? "切换到白昼" : "切换到傍晚";
+  const themeColor = mood === "dusk" ? "#1a1411" : "#f7f4ed";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
-  applyStatusBar(effective);
+  applyStatusBar(mood);
 }
 
-function themeToggleLabel(scheme) {
-  if (scheme === "light") return "主题:浅色(点击切到深色)";
-  if (scheme === "dark") return "主题:深色(点击切到跟随系统)";
-  return "主题:跟随系统(点击切到浅色)";
-}
-
-function setupColorSchemeListener() {
-  const handler = () => {
-    if ((settings.colorScheme || "auto") === "auto") applyColorScheme();
-  };
-  if (systemDarkQuery.addEventListener) {
-    systemDarkQuery.addEventListener("change", handler);
-  } else if (systemDarkQuery.addListener) {
-    systemDarkQuery.addListener(handler);
-  }
-}
-
-async function applyStatusBar(theme) {
+async function applyStatusBar(mood) {
   if (!isNative()) return;
   try {
     const { StatusBar, Style } = await import("@capacitor/status-bar");
-    await StatusBar.setStyle({ style: theme === "dark" ? Style.Dark : Style.Light });
+    await StatusBar.setStyle({ style: mood === "dusk" ? Style.Dark : Style.Light });
     if (Capacitor.getPlatform() === "android") {
-      await StatusBar.setBackgroundColor({ color: theme === "dark" ? "#000000" : "#f7f4ed" });
+      await StatusBar.setBackgroundColor({ color: mood === "dusk" ? "#1a1411" : "#f7f4ed" });
     }
   } catch {
     // plugin unavailable or unsupported on this device; ignore
