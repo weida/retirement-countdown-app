@@ -642,8 +642,8 @@ function renderDayView() {
   const retireIso = settings.retireDate || "";
   const retireMonthKey = retireIso.slice(0, 7);
 
-  els.calendarPrev.disabled = viewKey <= todayMonthKey;
-  els.calendarNext.disabled = retireMonthKey ? viewKey >= retireMonthKey : false;
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireMonthKey ? viewKey >= retireMonthKey : viewKey >= todayMonthKey;
 
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -660,14 +660,14 @@ function renderDayView() {
     const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const isToday = iso === todayIso;
     const isRetirement = retireIso && iso === retireIso;
-    const isPostRetire = retireIso && iso > retireIso;
+    const isFuture = iso > todayIso;
     const cell = buildCell({
       key: iso,
       label: String(d),
       crossed: crossSets.day.has(iso),
       today: isToday,
       retirement: isRetirement,
-      disabled: isPostRetire,
+      disabled: isFuture,
       ariaLabel: `${iso}${isToday ? " · 今天" : ""}${isRetirement ? " · 退休日" : ""}`,
     });
     els.calendarDays.appendChild(cell);
@@ -685,15 +685,14 @@ function renderMonthView() {
   const retireYear = retireIso ? Number(retireIso.slice(0, 4)) : null;
   const retireMonth = retireIso ? Number(retireIso.slice(5, 7)) - 1 : null;
 
-  els.calendarPrev.disabled = year <= todayYear;
-  els.calendarNext.disabled = retireYear !== null ? year >= retireYear : false;
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireYear !== null ? year >= retireYear : year >= todayYear;
 
   els.calendarDays.replaceChildren();
 
   for (let m = 0; m < 12; m++) {
     const key = `${year}-${String(m + 1).padStart(2, "0")}`;
-    const beforeToday = year < todayYear || (year === todayYear && m < todayMonth);
-    const afterRetire = retireYear !== null && (year > retireYear || (year === retireYear && m > retireMonth));
+    const isFuture = year > todayYear || (year === todayYear && m > todayMonth);
     const isThisMonth = year === todayYear && m === todayMonth;
     const isRetirementMonth = retireYear !== null && year === retireYear && m === retireMonth;
     const cell = buildCell({
@@ -702,7 +701,7 @@ function renderMonthView() {
       crossed: crossSets.month.has(key),
       today: isThisMonth,
       retirement: isRetirementMonth,
-      disabled: beforeToday || afterRetire,
+      disabled: isFuture,
       ariaLabel: `${year} 年 ${m + 1} 月${isThisMonth ? " · 本月" : ""}${isRetirementMonth ? " · 退休月" : ""}`,
     });
     els.calendarDays.appendChild(cell);
@@ -719,16 +718,15 @@ function renderWeekView() {
   const retireDate = retireIso ? new Date(`${retireIso}T00:00:00`) : null;
   const retireWeek = retireDate ? isoWeekOf(retireDate) : null;
 
-  els.calendarPrev.disabled = year <= todayWeek.year;
-  els.calendarNext.disabled = retireWeek ? year >= retireWeek.year : false;
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireWeek ? year >= retireWeek.year : year >= todayWeek.year;
 
   const total = isoWeeksInYear(year);
   els.calendarDays.replaceChildren();
 
   for (let w = 1; w <= total; w++) {
     const key = `${year}-W${String(w).padStart(2, "0")}`;
-    const before = year < todayWeek.year || (year === todayWeek.year && w < todayWeek.week);
-    const after = retireWeek && (year > retireWeek.year || (year === retireWeek.year && w > retireWeek.week));
+    const isFuture = year > todayWeek.year || (year === todayWeek.year && w > todayWeek.week);
     const isThisWeek = year === todayWeek.year && w === todayWeek.week;
     const isRetireWeek = retireWeek && year === retireWeek.year && w === retireWeek.week;
     const { start, end } = isoWeekDates(year, w);
@@ -740,7 +738,7 @@ function renderWeekView() {
       crossed: crossSets.week.has(key),
       today: isThisWeek,
       retirement: isRetireWeek,
-      disabled: before || after,
+      disabled: isFuture,
       ariaLabel: `${key} · ${range}${isThisWeek ? " · 本周" : ""}${isRetireWeek ? " · 退休周" : ""}`,
     });
     els.calendarDays.appendChild(cell);
@@ -762,12 +760,13 @@ function renderHourView() {
   for (let h = 0; h < 24; h++) {
     const key = `${todayIso}T${String(h).padStart(2, "0")}`;
     const isNow = h === currentHour;
+    const isFuture = h > currentHour;
     const cell = buildCell({
       key,
       label: `${String(h).padStart(2, "0")}:00`,
       crossed: crossSets.hour.has(key),
       today: isNow,
-      disabled: reachedRetirement,
+      disabled: reachedRetirement || isFuture,
       ariaLabel: `${todayIso} ${h} 时${isNow ? " · 当前" : ""}`,
     });
     els.calendarDays.appendChild(cell);
