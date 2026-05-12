@@ -25,8 +25,10 @@ const defaults = {
   remindersEnabled: null,
   retirementReachedNotified: false,
   mood: "day",
-  crossedDates: [],
+  crossedMarks: { day: [], month: [], week: [], hour: [] },
 };
+
+const CALENDAR_VIEWS = ["day", "month", "week", "hour"];
 
 const BIRTH_YEAR_MIN = 1955;
 const BIRTH_YEAR_MAX = 2010;
@@ -125,7 +127,8 @@ const els = {
   pickerOptions: document.querySelector("#pickerOptions"),
   pickerClose: document.querySelector("#pickerClose"),
   pickerHandle: document.querySelector("#pickerHandle"),
-  openCalendar: document.querySelector("#openCalendar"),
+  hero: document.querySelector(".hero"),
+  stamps: document.querySelectorAll(".stamp"),
   calendarSheet: document.querySelector("#calendarSheet"),
   calendarHandle: document.querySelector("#calendarHandle"),
   calendarTitle: document.querySelector("#calendarTitle"),
@@ -134,12 +137,19 @@ const els = {
   calendarClose: document.querySelector("#calendarClose"),
   calendarDays: document.querySelector("#calendarDays"),
   calendarStats: document.querySelector("#calendarStats"),
+  calendarTabs: document.querySelector("#calendarTabs"),
 };
 
 let settings = loadSettings();
 let reminderTimer = null;
-const crossedSet = new Set(Array.isArray(settings.crossedDates) ? settings.crossedDates : []);
-let calendarView = null;
+const crossSets = {
+  day: new Set(settings.crossedMarks?.day ?? []),
+  month: new Set(settings.crossedMarks?.month ?? []),
+  week: new Set(settings.crossedMarks?.week ?? []),
+  hour: new Set(settings.crossedMarks?.hour ?? []),
+};
+let calendarView = "day";
+let calendarCursor = null;
 const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 init();
@@ -236,13 +246,25 @@ function loadSettings() {
   } catch {
     stored = {};
   }
-  const needsMigration = stored.dark !== undefined && stored.mood === undefined;
-  if (needsMigration) {
+  let migrated = false;
+  if (stored.dark !== undefined && stored.mood === undefined) {
     stored.mood = stored.dark ? "dusk" : "day";
     delete stored.dark;
+    migrated = true;
+  }
+  if (Array.isArray(stored.crossedDates) && !stored.crossedMarks) {
+    stored.crossedMarks = { day: stored.crossedDates, month: [], week: [], hour: [] };
+    delete stored.crossedDates;
+    migrated = true;
   }
   const merged = { ...defaults, ...stored };
-  if (needsMigration) {
+  merged.crossedMarks = {
+    day: merged.crossedMarks?.day ?? [],
+    month: merged.crossedMarks?.month ?? [],
+    week: merged.crossedMarks?.week ?? [],
+    hour: merged.crossedMarks?.hour ?? [],
+  };
+  if (migrated) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     } catch {
@@ -517,24 +539,32 @@ function pickerTitleFor(field) {
 }
 
 function setupCalendar() {
-  els.openCalendar.addEventListener("click", openCalendar);
+  els.hero.addEventListener("click", () => openCalendar("day"));
+  els.stamps.forEach((stamp) => {
+    stamp.addEventListener("click", () => openCalendar(stamp.dataset.view));
+  });
   els.calendarClose.addEventListener("click", closeCalendar);
   els.calendarPrev.addEventListener("click", () => navigateCalendar(-1));
   els.calendarNext.addEventListener("click", () => navigateCalendar(1));
   els.calendarSheet.addEventListener("click", (event) => {
     if (event.target === els.calendarSheet) closeCalendar();
   });
+  els.calendarTabs.addEventListener("click", (event) => {
+    const tab = event.target.closest(".calendar-tab");
+    if (!tab) return;
+    switchView(tab.dataset.view);
+  });
   els.calendarDays.addEventListener("click", (event) => {
     const cell = event.target.closest(".day-cell");
-    if (!cell || !cell.dataset.iso || cell.classList.contains("day-cell--empty")
+    if (!cell || !cell.dataset.key || cell.classList.contains("day-cell--empty")
         || cell.classList.contains("day-cell--disabled")) return;
-    toggleCross(cell.dataset.iso, cell);
+    toggleCross(calendarView, cell.dataset.key, cell);
   });
 }
 
-function openCalendar() {
-  const today = new Date();
-  calendarView = { year: today.getFullYear(), month: today.getMonth() };
+function openCalendar(view = "day") {
+  switchView(view, { skipRender: true });
+  resetCursor();
   renderCalendar();
   if (typeof els.calendarSheet.showModal === "function") {
     els.calendarSheet.showModal();
@@ -553,20 +583,57 @@ function closeCalendar() {
   triggerHaptic();
 }
 
+function switchView(view, { skipRender = false } = {}) {
+  if (!CALENDAR_VIEWS.includes(view)) return;
+  if (calendarView === view && !skipRender) return;
+  calendarView = view;
+  els.calendarSheet.dataset.view = view;
+  els.calendarTabs.querySelectorAll(".calendar-tab").forEach((tab) => {
+    tab.setAttribute("aria-selected", String(tab.dataset.view === view));
+  });
+  if (!skipRender) {
+    resetCursor();
+    renderCalendar();
+  }
+}
+
+function resetCursor() {
+  const today = new Date();
+  if (calendarView === "day") {
+    calendarCursor = { year: today.getFullYear(), month: today.getMonth() };
+  } else if (calendarView === "month" || calendarView === "week") {
+    calendarCursor = { year: today.getFullYear() };
+  } else {
+    calendarCursor = null;
+  }
+}
+
 function navigateCalendar(direction) {
-  if (!calendarView) return;
-  let { year, month } = calendarView;
-  month += direction;
-  if (month < 0) { month = 11; year -= 1; }
-  else if (month > 11) { month = 0; year += 1; }
-  calendarView = { year, month };
+  if (calendarView === "day") {
+    let { year, month } = calendarCursor;
+    month += direction;
+    if (month < 0) { month = 11; year -= 1; }
+    else if (month > 11) { month = 0; year += 1; }
+    calendarCursor = { year, month };
+  } else if (calendarView === "month" || calendarView === "week") {
+    calendarCursor = { year: calendarCursor.year + direction };
+  } else {
+    return;
+  }
   renderCalendar();
   triggerHaptic();
 }
 
 function renderCalendar() {
-  if (!calendarView) return;
-  const { year, month } = calendarView;
+  if (calendarView === "day") renderDayView();
+  else if (calendarView === "month") renderMonthView();
+  else if (calendarView === "week") renderWeekView();
+  else if (calendarView === "hour") renderHourView();
+  updateCalendarStats();
+}
+
+function renderDayView() {
+  const { year, month } = calendarCursor;
   els.calendarTitle.textContent = `${year} 年 ${month + 1} 月`;
 
   const todayIso = isoFromDate(new Date());
@@ -591,45 +658,155 @@ function renderCalendar() {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const cell = document.createElement("button");
-    cell.type = "button";
-    cell.className = "day-cell";
-    cell.dataset.iso = iso;
-    cell.setAttribute("role", "gridcell");
-
     const isToday = iso === todayIso;
     const isRetirement = retireIso && iso === retireIso;
     const isPostRetire = retireIso && iso > retireIso;
-
-    if (isToday) cell.classList.add("day-cell--today");
-    if (isRetirement) cell.classList.add("day-cell--retirement");
-    if (isPostRetire) {
-      cell.classList.add("day-cell--disabled");
-      cell.disabled = true;
-    }
-
-    const pressed = crossedSet.has(iso);
-    cell.setAttribute("aria-pressed", String(pressed));
-    cell.setAttribute("aria-label", calendarCellLabel(iso, isToday, isRetirement, pressed));
-
-    const num = document.createElement("span");
-    num.className = "day-num";
-    num.textContent = String(d);
-    cell.appendChild(num);
-
-    cell.appendChild(createCrossSvg());
-
-    if (isRetirement) {
-      const flag = document.createElement("span");
-      flag.className = "day-flag";
-      flag.textContent = "退休";
-      cell.appendChild(flag);
-    }
-
+    const cell = buildCell({
+      key: iso,
+      label: String(d),
+      crossed: crossSets.day.has(iso),
+      today: isToday,
+      retirement: isRetirement,
+      disabled: isPostRetire,
+      ariaLabel: `${iso}${isToday ? " · 今天" : ""}${isRetirement ? " · 退休日" : ""}`,
+    });
     els.calendarDays.appendChild(cell);
   }
+}
 
-  updateCalendarStats();
+function renderMonthView() {
+  const { year } = calendarCursor;
+  els.calendarTitle.textContent = `${year} 年`;
+
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const retireIso = settings.retireDate || "";
+  const retireYear = retireIso ? Number(retireIso.slice(0, 4)) : null;
+  const retireMonth = retireIso ? Number(retireIso.slice(5, 7)) - 1 : null;
+
+  els.calendarPrev.disabled = year <= todayYear;
+  els.calendarNext.disabled = retireYear !== null ? year >= retireYear : false;
+
+  els.calendarDays.replaceChildren();
+
+  for (let m = 0; m < 12; m++) {
+    const key = `${year}-${String(m + 1).padStart(2, "0")}`;
+    const beforeToday = year < todayYear || (year === todayYear && m < todayMonth);
+    const afterRetire = retireYear !== null && (year > retireYear || (year === retireYear && m > retireMonth));
+    const isThisMonth = year === todayYear && m === todayMonth;
+    const isRetirementMonth = retireYear !== null && year === retireYear && m === retireMonth;
+    const cell = buildCell({
+      key,
+      label: `${m + 1} 月`,
+      crossed: crossSets.month.has(key),
+      today: isThisMonth,
+      retirement: isRetirementMonth,
+      disabled: beforeToday || afterRetire,
+      ariaLabel: `${year} 年 ${m + 1} 月${isThisMonth ? " · 本月" : ""}${isRetirementMonth ? " · 退休月" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function renderWeekView() {
+  const { year } = calendarCursor;
+  els.calendarTitle.textContent = `${year} 年 · 周`;
+
+  const today = new Date();
+  const todayWeek = isoWeekOf(today);
+  const retireIso = settings.retireDate || "";
+  const retireDate = retireIso ? new Date(`${retireIso}T00:00:00`) : null;
+  const retireWeek = retireDate ? isoWeekOf(retireDate) : null;
+
+  els.calendarPrev.disabled = year <= todayWeek.year;
+  els.calendarNext.disabled = retireWeek ? year >= retireWeek.year : false;
+
+  const total = isoWeeksInYear(year);
+  els.calendarDays.replaceChildren();
+
+  for (let w = 1; w <= total; w++) {
+    const key = `${year}-W${String(w).padStart(2, "0")}`;
+    const before = year < todayWeek.year || (year === todayWeek.year && w < todayWeek.week);
+    const after = retireWeek && (year > retireWeek.year || (year === retireWeek.year && w > retireWeek.week));
+    const isThisWeek = year === todayWeek.year && w === todayWeek.week;
+    const isRetireWeek = retireWeek && year === retireWeek.year && w === retireWeek.week;
+    const { start, end } = isoWeekDates(year, w);
+    const range = `${start.getMonth() + 1}/${start.getDate()}-${end.getMonth() + 1}/${end.getDate()}`;
+    const cell = buildCell({
+      key,
+      label: `W${w}`,
+      sub: range,
+      crossed: crossSets.week.has(key),
+      today: isThisWeek,
+      retirement: isRetireWeek,
+      disabled: before || after,
+      ariaLabel: `${key} · ${range}${isThisWeek ? " · 本周" : ""}${isRetireWeek ? " · 退休周" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function renderHourView() {
+  const today = new Date();
+  const todayIso = isoFromDate(today);
+  els.calendarTitle.textContent = `今日 ${today.getMonth() + 1} 月 ${today.getDate()} 日`;
+  els.calendarPrev.disabled = true;
+  els.calendarNext.disabled = true;
+
+  const retireIso = settings.retireDate || "";
+  const reachedRetirement = retireIso && todayIso > retireIso;
+  const currentHour = today.getHours();
+  els.calendarDays.replaceChildren();
+
+  for (let h = 0; h < 24; h++) {
+    const key = `${todayIso}T${String(h).padStart(2, "0")}`;
+    const isNow = h === currentHour;
+    const cell = buildCell({
+      key,
+      label: `${String(h).padStart(2, "0")}:00`,
+      crossed: crossSets.hour.has(key),
+      today: isNow,
+      disabled: reachedRetirement,
+      ariaLabel: `${todayIso} ${h} 时${isNow ? " · 当前" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function buildCell({ key, label, sub, crossed, today, retirement, disabled, ariaLabel }) {
+  const cell = document.createElement("button");
+  cell.type = "button";
+  cell.className = "day-cell";
+  cell.dataset.key = key;
+  cell.setAttribute("role", "gridcell");
+  if (today) cell.classList.add("day-cell--today");
+  if (retirement) cell.classList.add("day-cell--retirement");
+  if (disabled) { cell.classList.add("day-cell--disabled"); cell.disabled = true; }
+  cell.setAttribute("aria-pressed", String(!!crossed));
+  if (ariaLabel) cell.setAttribute("aria-label", `${ariaLabel} · ${crossed ? "已划掉" : "未划掉"}`);
+
+  const num = document.createElement("span");
+  num.className = "day-num";
+  num.textContent = label;
+  cell.appendChild(num);
+
+  if (sub) {
+    const subEl = document.createElement("span");
+    subEl.className = "day-sub";
+    subEl.textContent = sub;
+    cell.appendChild(subEl);
+  }
+
+  cell.appendChild(createCrossSvg());
+
+  if (retirement) {
+    const flag = document.createElement("span");
+    flag.className = "day-flag";
+    flag.textContent = "退休";
+    cell.appendChild(flag);
+  }
+  return cell;
 }
 
 function createCrossSvg() {
@@ -646,31 +823,30 @@ function createCrossSvg() {
   return svg;
 }
 
-function toggleCross(iso, cell) {
-  if (crossedSet.has(iso)) {
-    crossedSet.delete(iso);
-  } else {
-    crossedSet.add(iso);
-  }
-  const pressed = crossedSet.has(iso);
+function toggleCross(view, key, cell) {
+  const set = crossSets[view];
+  if (!set) return;
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
+  const pressed = set.has(key);
   cell.setAttribute("aria-pressed", String(pressed));
-  settings.crossedDates = Array.from(crossedSet).sort();
+  settings.crossedMarks = {
+    day: Array.from(crossSets.day).sort(),
+    month: Array.from(crossSets.month).sort(),
+    week: Array.from(crossSets.week).sort(),
+    hour: Array.from(crossSets.hour).sort(),
+  };
   saveSettings();
   triggerHaptic(pressed ? "Medium" : "Light");
   updateCalendarStats();
 }
 
 function updateCalendarStats() {
-  const total = crossedSet.size;
-  els.calendarStats.textContent = total > 0 ? `已划掉 ${total} 天` : "点击日期标记已过";
-}
-
-function calendarCellLabel(iso, isToday, isRetirement, pressed) {
-  const parts = [iso];
-  if (isToday) parts.push("今天");
-  if (isRetirement) parts.push("退休日");
-  parts.push(pressed ? "已划掉" : "未划掉");
-  return parts.join(" · ");
+  const total = crossSets[calendarView]?.size ?? 0;
+  const unit = { day: "天", month: "月", week: "周", hour: "时" }[calendarView] || "项";
+  els.calendarStats.textContent = total > 0
+    ? `已划掉 ${total} ${unit}`
+    : `点击${unit === "天" ? "日期" : unit + "块"}标记已过`;
 }
 
 function isoFromDate(date) {
@@ -678,6 +854,30 @@ function isoFromDate(date) {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function isoWeekOf(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+function isoWeeksInYear(year) {
+  const jan1 = new Date(year, 0, 1).getDay();
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return jan1 === 4 || (isLeap && jan1 === 3) ? 53 : 52;
+}
+
+function isoWeekDates(year, week) {
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay() || 7;
+  const monday = new Date(year, 0, 4 - jan4Day + 1 + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
 }
 
 async function setupBackButton() {

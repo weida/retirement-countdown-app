@@ -118,12 +118,12 @@ select {
     var(--card);
   border: 1px solid var(--line-soft);
   border-radius: 28px;
-  padding: clamp(28px, 4vw, 44px);
+  padding: clamp(28px, 4vw, 48px);
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(20px, 4vh, 36px);
+  gap: clamp(26px, 5.5vh, 48px);
   position: relative;
   overflow: hidden;
   transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
@@ -133,7 +133,7 @@ select {
 .cluster {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   z-index: 1;
 }
 
@@ -328,12 +328,32 @@ body[data-mood="dusk"] .mood-icon--moon {
 /* ==== Hero ==== */
 
 .hero {
+  /* button reset */
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 14px;
   z-index: 1;
-  padding: 4px 0 8px;
+  padding: 12px 8px 18px;
+  border-radius: 22px;
+  transition: background 0.18s ease, transform 0.1s ease;
+}
+
+.hero:hover,
+.hero:focus-visible {
+  background: color-mix(in srgb, var(--accent-soft) 75%, transparent);
+  outline: none;
+}
+
+.hero:active {
+  transform: scale(0.985);
 }
 
 .hero-number {
@@ -358,17 +378,33 @@ body[data-mood="dusk"] .mood-icon--moon {
 .stamps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 14px;
   z-index: 1;
 }
 
 .stamp {
+  /* button reset */
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 14px 12px;
+  padding: 16px 12px;
   text-align: center;
   background: color-mix(in srgb, var(--card) 60%, transparent);
-  transition: border-color 0.3s ease, background 0.3s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.stamp:hover,
+.stamp:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 60%, var(--card));
+  outline: none;
+}
+
+.stamp:active {
+  transform: scale(0.97);
 }
 
 .stamp strong {
@@ -898,8 +934,8 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 
   .countdown-card {
     border-radius: 22px;
-    gap: clamp(16px, 3vh, 28px);
-    padding: 24px;
+    gap: clamp(22px, 4.5vh, 40px);
+    padding: 24px 22px;
   }
 
   .month-dots {
@@ -912,11 +948,11 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   }
 
   .stamps {
-    gap: 8px;
+    gap: 10px;
   }
 
   .stamp {
-    padding: 12px 8px;
+    padding: 14px 8px;
     border-radius: 12px;
   }
 
@@ -1262,6 +1298,82 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 
 .day-cell[aria-pressed="true"] .day-num {
   opacity: 0.42;
+}
+
+.calendar-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 12px 16px 0;
+  padding: 4px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  border-radius: 12px;
+}
+
+.calendar-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-weight: 500;
+  padding: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.calendar-tab[aria-selected="true"] {
+  background: var(--card);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.calendar-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.calendar-sheet:not([data-view="day"]) .calendar-weekdays {
+  display: none;
+}
+
+.calendar-sheet[data-view="month"] .calendar-days {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.calendar-sheet[data-view="month"] .day-cell {
+  aspect-ratio: 1.55;
+  font-size: 1rem;
+}
+
+.calendar-sheet[data-view="week"] .calendar-days {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calendar-sheet[data-view="week"] .day-cell {
+  aspect-ratio: 1.6;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 4px;
+}
+
+.calendar-sheet[data-view="week"] .day-sub {
+  font-size: 0.62rem;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+
+.calendar-sheet[data-view="hour"] .calendar-days {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.calendar-sheet[data-view="hour"] .day-cell {
+  aspect-ratio: 1.1;
 }
 
 .calendar-foot {
