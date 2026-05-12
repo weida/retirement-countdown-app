@@ -25,6 +25,7 @@ const defaults = {
   remindersEnabled: null,
   retirementReachedNotified: false,
   mood: "day",
+  crossedDates: [],
 };
 
 const BIRTH_YEAR_MIN = 1955;
@@ -124,10 +125,21 @@ const els = {
   pickerOptions: document.querySelector("#pickerOptions"),
   pickerClose: document.querySelector("#pickerClose"),
   pickerHandle: document.querySelector("#pickerHandle"),
+  openCalendar: document.querySelector("#openCalendar"),
+  calendarSheet: document.querySelector("#calendarSheet"),
+  calendarHandle: document.querySelector("#calendarHandle"),
+  calendarTitle: document.querySelector("#calendarTitle"),
+  calendarPrev: document.querySelector("#calendarPrev"),
+  calendarNext: document.querySelector("#calendarNext"),
+  calendarClose: document.querySelector("#calendarClose"),
+  calendarDays: document.querySelector("#calendarDays"),
+  calendarStats: document.querySelector("#calendarStats"),
 };
 
 let settings = loadSettings();
 let reminderTimer = null;
+const crossedSet = new Set(Array.isArray(settings.crossedDates) ? settings.crossedDates : []);
+let calendarView = null;
 const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 init();
@@ -206,6 +218,7 @@ function init() {
   els.closeSettings.addEventListener("click", closeSettingsDialog);
 
   setupPickers();
+  setupCalendar();
   setupSheetDragToClose();
   setupBackButton();
 
@@ -503,6 +516,170 @@ function pickerTitleFor(field) {
   }
 }
 
+function setupCalendar() {
+  els.openCalendar.addEventListener("click", openCalendar);
+  els.calendarClose.addEventListener("click", closeCalendar);
+  els.calendarPrev.addEventListener("click", () => navigateCalendar(-1));
+  els.calendarNext.addEventListener("click", () => navigateCalendar(1));
+  els.calendarSheet.addEventListener("click", (event) => {
+    if (event.target === els.calendarSheet) closeCalendar();
+  });
+  els.calendarDays.addEventListener("click", (event) => {
+    const cell = event.target.closest(".day-cell");
+    if (!cell || !cell.dataset.iso || cell.classList.contains("day-cell--empty")
+        || cell.classList.contains("day-cell--disabled")) return;
+    toggleCross(cell.dataset.iso, cell);
+  });
+}
+
+function openCalendar() {
+  const today = new Date();
+  calendarView = { year: today.getFullYear(), month: today.getMonth() };
+  renderCalendar();
+  if (typeof els.calendarSheet.showModal === "function") {
+    els.calendarSheet.showModal();
+  } else {
+    els.calendarSheet.setAttribute("open", "");
+  }
+  triggerHaptic();
+}
+
+function closeCalendar() {
+  if (typeof els.calendarSheet.close === "function") {
+    els.calendarSheet.close();
+  } else {
+    els.calendarSheet.removeAttribute("open");
+  }
+  triggerHaptic();
+}
+
+function navigateCalendar(direction) {
+  if (!calendarView) return;
+  let { year, month } = calendarView;
+  month += direction;
+  if (month < 0) { month = 11; year -= 1; }
+  else if (month > 11) { month = 0; year += 1; }
+  calendarView = { year, month };
+  renderCalendar();
+  triggerHaptic();
+}
+
+function renderCalendar() {
+  if (!calendarView) return;
+  const { year, month } = calendarView;
+  els.calendarTitle.textContent = `${year} 年 ${month + 1} 月`;
+
+  const todayIso = isoFromDate(new Date());
+  const todayMonthKey = todayIso.slice(0, 7);
+  const viewKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const retireIso = settings.retireDate || "";
+  const retireMonthKey = retireIso.slice(0, 7);
+
+  els.calendarPrev.disabled = viewKey <= todayMonthKey;
+  els.calendarNext.disabled = retireMonthKey ? viewKey >= retireMonthKey : false;
+
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  els.calendarDays.replaceChildren();
+
+  for (let i = 0; i < firstWeekday; i++) {
+    const blank = document.createElement("div");
+    blank.className = "day-cell day-cell--empty";
+    els.calendarDays.appendChild(blank);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "day-cell";
+    cell.dataset.iso = iso;
+    cell.setAttribute("role", "gridcell");
+
+    const isToday = iso === todayIso;
+    const isRetirement = retireIso && iso === retireIso;
+    const isPostRetire = retireIso && iso > retireIso;
+
+    if (isToday) cell.classList.add("day-cell--today");
+    if (isRetirement) cell.classList.add("day-cell--retirement");
+    if (isPostRetire) {
+      cell.classList.add("day-cell--disabled");
+      cell.disabled = true;
+    }
+
+    const pressed = crossedSet.has(iso);
+    cell.setAttribute("aria-pressed", String(pressed));
+    cell.setAttribute("aria-label", calendarCellLabel(iso, isToday, isRetirement, pressed));
+
+    const num = document.createElement("span");
+    num.className = "day-num";
+    num.textContent = String(d);
+    cell.appendChild(num);
+
+    cell.appendChild(createCrossSvg());
+
+    if (isRetirement) {
+      const flag = document.createElement("span");
+      flag.className = "day-flag";
+      flag.textContent = "退休";
+      cell.appendChild(flag);
+    }
+
+    els.calendarDays.appendChild(cell);
+  }
+
+  updateCalendarStats();
+}
+
+function createCrossSvg() {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "day-cross");
+  svg.setAttribute("viewBox", "0 0 32 32");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ["M7 8 L25 24", "M25 8 L7 24"]) {
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
+function toggleCross(iso, cell) {
+  if (crossedSet.has(iso)) {
+    crossedSet.delete(iso);
+  } else {
+    crossedSet.add(iso);
+  }
+  const pressed = crossedSet.has(iso);
+  cell.setAttribute("aria-pressed", String(pressed));
+  settings.crossedDates = Array.from(crossedSet).sort();
+  saveSettings();
+  triggerHaptic(pressed ? "Medium" : "Light");
+  updateCalendarStats();
+}
+
+function updateCalendarStats() {
+  const total = crossedSet.size;
+  els.calendarStats.textContent = total > 0 ? `已划掉 ${total} 天` : "点击日期标记已过";
+}
+
+function calendarCellLabel(iso, isToday, isRetirement, pressed) {
+  const parts = [iso];
+  if (isToday) parts.push("今天");
+  if (isRetirement) parts.push("退休日");
+  parts.push(pressed ? "已划掉" : "未划掉");
+  return parts.join(" · ");
+}
+
+function isoFromDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 async function setupBackButton() {
   if (!isNative()) return;
   try {
@@ -510,6 +687,10 @@ async function setupBackButton() {
     App.addListener("backButton", () => {
       if (els.pickerSheet.open) {
         closePicker();
+        return;
+      }
+      if (els.calendarSheet.open) {
+        closeCalendar();
         return;
       }
       if (els.settingsDialog.open) {
@@ -526,6 +707,7 @@ async function setupBackButton() {
 function setupSheetDragToClose() {
   attachDragToClose(els.settingsHandle, els.settingsDialog, closeSettingsDialog);
   attachDragToClose(els.pickerHandle, els.pickerSheet, closePicker);
+  attachDragToClose(els.calendarHandle, els.calendarSheet, closeCalendar);
 }
 
 function attachDragToClose(handle, dialog, closeFn) {
