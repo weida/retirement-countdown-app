@@ -22,8 +22,59 @@ const defaults = {
   retireDate: "",
   reminderTime: "09:00",
   reminderText: "今天也离退休更近了一天",
+  remindersEnabled: null,
   retirementReachedNotified: false,
   mood: "day",
+  crossedMarks: { day: [], month: [], week: [], hour: [] },
+};
+
+const CALENDAR_VIEWS = ["day", "month", "week", "hour"];
+
+const BIRTH_YEAR_MIN = 1955;
+const BIRTH_YEAR_MAX = 2010;
+const BIRTH_YEAR_DEFAULT_FOCUS = "1970";
+
+const PICKER_OPTIONS = {
+  calculationMode: [
+    { value: "policy", label: "按中国法定退休政策自动计算" },
+    { value: "manual", label: "手动设置退休日期" },
+  ],
+  workerType: [
+    { value: "male", label: "男职工:原 60 岁退休" },
+    { value: "female55", label: "女职工:原 55 岁退休" },
+    { value: "female50", label: "女职工:原 50 岁退休" },
+  ],
+  flexMode: [
+    { value: "statutory", label: "按改革后法定退休年龄" },
+    { value: "early", label: "弹性提前退休,提前 3 年内" },
+    { value: "late", label: "弹性延迟退休,延迟 3 年内" },
+  ],
+  birthYear: Array.from({ length: BIRTH_YEAR_MAX - BIRTH_YEAR_MIN + 1 }, (_, i) => {
+    const y = BIRTH_YEAR_MIN + i;
+    return { value: String(y), label: `${y} 年` };
+  }),
+  birthMonth: Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1} 月`,
+  })),
+};
+
+const DYNAMIC_PICKER_OPTIONS = {
+  birthDay: () => {
+    const year = parseInt(document.getElementById("birthYear").value || BIRTH_YEAR_DEFAULT_FOCUS, 10);
+    const month = parseInt(document.getElementById("birthMonth").value || "1", 10);
+    const dayCount = new Date(year, month, 0).getDate();
+    return Array.from({ length: dayCount }, (_, i) => ({
+      value: String(i + 1),
+      label: `${i + 1} 日`,
+    }));
+  },
+};
+
+const PICKER_DEFAULT_FOCUS = {
+  birthYear: BIRTH_YEAR_DEFAULT_FOCUS,
+  birthMonth: "1",
+  birthDay: "1",
 };
 
 const els = {
@@ -43,11 +94,14 @@ const els = {
   finalResult: document.querySelector("#finalResult"),
   reminderTime: document.querySelector("#reminderTime"),
   reminderText: document.querySelector("#reminderText"),
-  notifyButton: document.querySelector("#notifyButton"),
+  remindersToggle: document.querySelector("#remindersToggle"),
+  reminderDetails: document.querySelector("#reminderDetails"),
+  reminderStatus: document.querySelector("#reminderStatus"),
   moodToggle: document.querySelector("#moodToggle"),
   openSettings: document.querySelector("#openSettings"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsDialog: document.querySelector("#settingsDialog"),
+  settingsHandle: document.querySelector("#settingsHandle"),
   bandYear: document.querySelector("#bandYear"),
   bandCaption: document.querySelector("#bandCaption"),
   monthDots: document.querySelector("#monthDots"),
@@ -59,11 +113,43 @@ const els = {
   hoursLeft: document.querySelector("#hoursLeft"),
   status: document.querySelector("#retirementStatus"),
   nextReminder: document.querySelector("#nextReminder"),
-  permissionState: document.querySelector("#permissionState"),
+  calculationModeLabel: document.querySelector("#calculationModeLabel"),
+  workerTypeLabel: document.querySelector("#workerTypeLabel"),
+  flexModeLabel: document.querySelector("#flexModeLabel"),
+  birthYear: document.querySelector("#birthYear"),
+  birthMonth: document.querySelector("#birthMonth"),
+  birthDay: document.querySelector("#birthDay"),
+  birthYearLabel: document.querySelector("#birthYearLabel"),
+  birthMonthLabel: document.querySelector("#birthMonthLabel"),
+  birthDayLabel: document.querySelector("#birthDayLabel"),
+  pickerSheet: document.querySelector("#pickerSheet"),
+  pickerTitle: document.querySelector("#pickerTitle"),
+  pickerOptions: document.querySelector("#pickerOptions"),
+  pickerClose: document.querySelector("#pickerClose"),
+  pickerHandle: document.querySelector("#pickerHandle"),
+  hero: document.querySelector(".hero"),
+  stamps: document.querySelectorAll(".stamp"),
+  calendarSheet: document.querySelector("#calendarSheet"),
+  calendarHandle: document.querySelector("#calendarHandle"),
+  calendarTitle: document.querySelector("#calendarTitle"),
+  calendarPrev: document.querySelector("#calendarPrev"),
+  calendarNext: document.querySelector("#calendarNext"),
+  calendarClose: document.querySelector("#calendarClose"),
+  calendarDays: document.querySelector("#calendarDays"),
+  calendarStats: document.querySelector("#calendarStats"),
+  calendarTabs: document.querySelector("#calendarTabs"),
 };
 
 let settings = loadSettings();
 let reminderTimer = null;
+const crossSets = {
+  day: new Set(settings.crossedMarks?.day ?? []),
+  month: new Set(settings.crossedMarks?.month ?? []),
+  week: new Set(settings.crossedMarks?.week ?? []),
+  hour: new Set(settings.crossedMarks?.hour ?? []),
+};
+let calendarView = "day";
+let calendarCursor = null;
 const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 init();
@@ -75,7 +161,7 @@ function init() {
   applyMood();
   refreshPolicyCalculation();
   updateCountdown();
-  updatePermissionState();
+  setupReminderToggle();
   scheduleReminder();
 
   [
@@ -89,7 +175,15 @@ function init() {
     element.addEventListener("change", refreshPolicyCalculation);
   });
 
-  els.flexMonths.addEventListener("input", () => updateFlexSliderDisplay(els.flexMonths.value));
+  let lastSliderValue = -1;
+  els.flexMonths.addEventListener("input", () => {
+    const value = normalizeFlexMonths(els.flexMonths.value);
+    updateFlexSliderDisplay(value);
+    if ((value === 0 || value === FLEX_LIMIT_MONTHS) && lastSliderValue !== value) {
+      triggerHaptic();
+    }
+    lastSliderValue = value;
+  });
 
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -117,21 +211,26 @@ function init() {
     }
 
     saveSettings();
+    triggerHaptic("Medium");
     updateCountdown();
     await scheduleReminder();
     closeSettingsDialog();
   });
 
-  els.notifyButton.addEventListener("click", requestNotifications);
-
   els.moodToggle.addEventListener("click", () => {
     settings.mood = settings.mood === "dusk" ? "day" : "dusk";
     saveSettings();
     applyMood();
+    triggerHaptic();
   });
 
   els.openSettings.addEventListener("click", openSettingsDialog);
   els.closeSettings.addEventListener("click", closeSettingsDialog);
+
+  setupPickers();
+  setupCalendar();
+  setupSheetDragToClose();
+  setupBackButton();
 
   window.setInterval(updateCountdown, 60 * 1000);
 
@@ -147,13 +246,25 @@ function loadSettings() {
   } catch {
     stored = {};
   }
-  const needsMigration = stored.dark !== undefined && stored.mood === undefined;
-  if (needsMigration) {
+  let migrated = false;
+  if (stored.dark !== undefined && stored.mood === undefined) {
     stored.mood = stored.dark ? "dusk" : "day";
     delete stored.dark;
+    migrated = true;
+  }
+  if (Array.isArray(stored.crossedDates) && !stored.crossedMarks) {
+    stored.crossedMarks = { day: stored.crossedDates, month: [], week: [], hour: [] };
+    delete stored.crossedDates;
+    migrated = true;
   }
   const merged = { ...defaults, ...stored };
-  if (needsMigration) {
+  merged.crossedMarks = {
+    day: merged.crossedMarks?.day ?? [],
+    month: merged.crossedMarks?.month ?? [],
+    week: merged.crossedMarks?.week ?? [],
+    hour: merged.crossedMarks?.hour ?? [],
+  };
+  if (migrated) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     } catch {
@@ -168,15 +279,64 @@ function saveSettings() {
 }
 
 function applySettingsToForm() {
-  els.calculationMode.value = settings.calculationMode;
-  els.birthDate.value = settings.birthDate;
-  els.workerType.value = settings.workerType;
-  els.flexMode.value = settings.flexMode;
+  setHiddenAndLabel("calculationMode", settings.calculationMode);
+  applyBirthDateToForm(settings.birthDate);
+  setHiddenAndLabel("workerType", settings.workerType);
+  setHiddenAndLabel("flexMode", settings.flexMode);
   els.flexMonths.value = settings.flexMonths;
   updateFlexSliderDisplay(settings.flexMonths);
   els.retireDate.value = settings.retireDate;
   els.reminderTime.value = settings.reminderTime;
   els.reminderText.value = settings.reminderText;
+}
+
+function setHiddenAndLabel(field, value) {
+  const input = document.getElementById(field);
+  const labelEl = document.getElementById(`${field}Label`);
+  if (!input) return;
+  input.value = value;
+  const option = (PICKER_OPTIONS[field] || []).find((opt) => opt.value === value);
+  if (labelEl && option) labelEl.textContent = option.label;
+}
+
+function applyBirthDateToForm(iso) {
+  els.birthDate.value = iso || "";
+  if (!iso) {
+    els.birthYear.value = "";
+    els.birthMonth.value = "";
+    els.birthDay.value = "";
+    els.birthYearLabel.textContent = "年";
+    els.birthMonthLabel.textContent = "月";
+    els.birthDayLabel.textContent = "日";
+    return;
+  }
+  const [y, m, d] = iso.split("-");
+  els.birthYear.value = String(parseInt(y, 10));
+  els.birthMonth.value = String(parseInt(m, 10));
+  els.birthDay.value = String(parseInt(d, 10));
+  els.birthYearLabel.textContent = `${parseInt(y, 10)} 年`;
+  els.birthMonthLabel.textContent = `${parseInt(m, 10)} 月`;
+  els.birthDayLabel.textContent = `${parseInt(d, 10)} 日`;
+}
+
+function syncBirthDateFromParts() {
+  const y = els.birthYear.value;
+  const m = els.birthMonth.value;
+  let d = els.birthDay.value;
+
+  if (y && m && d) {
+    const maxDay = new Date(Number(y), Number(m), 0).getDate();
+    if (Number(d) > maxDay) {
+      d = String(maxDay);
+      els.birthDay.value = d;
+      els.birthDayLabel.textContent = `${maxDay} 日`;
+    }
+    els.birthDate.value = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  } else {
+    els.birthDate.value = "";
+  }
+  els.birthDate.dispatchEvent(new Event("input", { bubbles: true }));
+  els.birthDate.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 function updateFlexSliderDisplay(rawValue) {
@@ -191,6 +351,31 @@ function applyMood() {
   els.moodToggle.title = mood === "dusk" ? "切换到白昼" : "切换到傍晚";
   const themeColor = mood === "dusk" ? "#1a1411" : "#f7f4ed";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+  applyStatusBar(mood);
+}
+
+async function applyStatusBar(mood) {
+  if (!isNative()) return;
+  try {
+    const { StatusBar, Style } = await import("@capacitor/status-bar");
+    await StatusBar.setStyle({ style: mood === "dusk" ? Style.Dark : Style.Light });
+    if (Capacitor.getPlatform() === "android") {
+      await StatusBar.setBackgroundColor({ color: mood === "dusk" ? "#1a1411" : "#f7f4ed" });
+    }
+  } catch {
+    // plugin unavailable or unsupported on this device; ignore
+  }
+}
+
+async function triggerHaptic(style = "Light") {
+  if (!isNative()) return;
+  try {
+    const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
+    const impact = style === "Medium" ? ImpactStyle.Medium : ImpactStyle.Light;
+    await Haptics.impact({ style: impact });
+  } catch {
+    // plugin or hardware unavailable; ignore
+  }
 }
 
 function openSettingsDialog() {
@@ -199,6 +384,7 @@ function openSettingsDialog() {
   } else {
     els.settingsDialog.setAttribute("open", "");
   }
+  triggerHaptic();
 }
 
 function closeSettingsDialog() {
@@ -207,6 +393,568 @@ function closeSettingsDialog() {
   } else {
     els.settingsDialog.removeAttribute("open");
   }
+  triggerHaptic();
+}
+
+let _activePickerTrigger = null;
+
+function setupPickers() {
+  document.querySelectorAll(".picker-trigger").forEach((trigger) => {
+    trigger.addEventListener("click", () => openPicker(trigger.dataset.picker));
+  });
+  els.pickerClose.addEventListener("click", closePicker);
+  els.pickerSheet.addEventListener("click", (event) => {
+    if (event.target === els.pickerSheet) closePicker();
+  });
+  els.pickerOptions.addEventListener("keydown", (event) => {
+    const options = Array.from(els.pickerOptions.querySelectorAll(".picker-option"));
+    const focused = document.activeElement;
+    const idx = options.indexOf(focused);
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = options[(idx + 1) % options.length];
+      next?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const prev = options[(idx - 1 + options.length) % options.length];
+      prev?.focus();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (focused && options.includes(focused)) focused.click();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closePicker();
+    }
+  });
+}
+
+function openPicker(field) {
+  const options = DYNAMIC_PICKER_OPTIONS[field]?.() ?? PICKER_OPTIONS[field];
+  if (!options) {
+    console.warn(`Unknown picker field: ${field}`);
+    return;
+  }
+  const input = document.getElementById(field);
+  const currentValue = input?.value ?? "";
+
+  _activePickerTrigger = document.querySelector(`.picker-trigger[data-picker="${field}"]`);
+  if (_activePickerTrigger) _activePickerTrigger.setAttribute("aria-expanded", "true");
+
+  els.pickerTitle.textContent = pickerTitleFor(field);
+  els.pickerOptions.replaceChildren();
+
+  let selectedLi = null;
+  options.forEach((opt) => {
+    const li = document.createElement("li");
+    li.className = "picker-option";
+    li.setAttribute("role", "option");
+    li.setAttribute("tabindex", "0");
+    li.dataset.value = opt.value;
+    const isSelected = opt.value === currentValue;
+    li.setAttribute("aria-selected", String(isSelected));
+    if (isSelected) selectedLi = li;
+    const text = document.createElement("span");
+    text.textContent = opt.label;
+    li.appendChild(text);
+    const check = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    check.setAttribute("class", "check");
+    check.setAttribute("viewBox", "0 0 24 24");
+    check.setAttribute("width", "18");
+    check.setAttribute("height", "18");
+    check.setAttribute("fill", "none");
+    check.setAttribute("stroke", "currentColor");
+    check.setAttribute("stroke-width", "2.4");
+    check.setAttribute("stroke-linecap", "round");
+    check.setAttribute("stroke-linejoin", "round");
+    check.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M5 12l4 4L19 7");
+    check.appendChild(path);
+    li.appendChild(check);
+    li.addEventListener("click", () => {
+      setPickerValue(field, opt.value, opt.label);
+      closePicker();
+    });
+    els.pickerOptions.appendChild(li);
+  });
+
+  if (typeof els.pickerSheet.showModal === "function") {
+    els.pickerSheet.showModal();
+  } else {
+    els.pickerSheet.setAttribute("open", "");
+  }
+
+  let focusTarget = selectedLi;
+  if (!focusTarget) {
+    const defaultValue = PICKER_DEFAULT_FOCUS[field];
+    if (defaultValue) {
+      focusTarget = els.pickerOptions.querySelector(`.picker-option[data-value="${defaultValue}"]`);
+    }
+  }
+  focusTarget = focusTarget ?? els.pickerOptions.querySelector(".picker-option");
+  if (focusTarget) {
+    focusTarget.focus();
+    focusTarget.scrollIntoView({ block: "center" });
+  }
+}
+
+function closePicker() {
+  if (_activePickerTrigger) {
+    _activePickerTrigger.setAttribute("aria-expanded", "false");
+    _activePickerTrigger = null;
+  }
+  if (typeof els.pickerSheet.close === "function") {
+    els.pickerSheet.close();
+  } else {
+    els.pickerSheet.removeAttribute("open");
+  }
+}
+
+function setPickerValue(field, value, label) {
+  const input = document.getElementById(field);
+  const labelEl = document.getElementById(`${field}Label`);
+  if (!input) return;
+  input.value = value;
+  if (labelEl) labelEl.textContent = label;
+
+  if (field === "birthYear" || field === "birthMonth" || field === "birthDay") {
+    syncBirthDateFromParts();
+  } else {
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  triggerHaptic();
+}
+
+function pickerTitleFor(field) {
+  switch (field) {
+    case "calculationMode": return "计算方式";
+    case "workerType": return "人员类型";
+    case "flexMode": return "弹性退休";
+    case "birthYear": return "出生年份";
+    case "birthMonth": return "出生月份";
+    case "birthDay": return "出生日";
+    default: return "选择";
+  }
+}
+
+function setupCalendar() {
+  els.hero.addEventListener("click", () => openCalendar("day"));
+  els.stamps.forEach((stamp) => {
+    stamp.addEventListener("click", () => openCalendar(stamp.dataset.view));
+  });
+  els.calendarClose.addEventListener("click", closeCalendar);
+  els.calendarPrev.addEventListener("click", () => navigateCalendar(-1));
+  els.calendarNext.addEventListener("click", () => navigateCalendar(1));
+  els.calendarSheet.addEventListener("click", (event) => {
+    if (event.target === els.calendarSheet) closeCalendar();
+  });
+  els.calendarTabs.addEventListener("click", (event) => {
+    const tab = event.target.closest(".calendar-tab");
+    if (!tab) return;
+    switchView(tab.dataset.view);
+  });
+  els.calendarDays.addEventListener("click", (event) => {
+    const cell = event.target.closest(".day-cell");
+    if (!cell || !cell.dataset.key || cell.classList.contains("day-cell--empty")
+        || cell.classList.contains("day-cell--disabled")) return;
+    toggleCross(calendarView, cell.dataset.key, cell);
+  });
+}
+
+function openCalendar(view = "day") {
+  switchView(view, { skipRender: true });
+  resetCursor();
+  renderCalendar();
+  if (typeof els.calendarSheet.showModal === "function") {
+    els.calendarSheet.showModal();
+  } else {
+    els.calendarSheet.setAttribute("open", "");
+  }
+  triggerHaptic();
+}
+
+function closeCalendar() {
+  if (typeof els.calendarSheet.close === "function") {
+    els.calendarSheet.close();
+  } else {
+    els.calendarSheet.removeAttribute("open");
+  }
+  triggerHaptic();
+}
+
+function switchView(view, { skipRender = false } = {}) {
+  if (!CALENDAR_VIEWS.includes(view)) return;
+  if (calendarView === view && !skipRender) return;
+  calendarView = view;
+  els.calendarSheet.dataset.view = view;
+  els.calendarTabs.querySelectorAll(".calendar-tab").forEach((tab) => {
+    tab.setAttribute("aria-selected", String(tab.dataset.view === view));
+  });
+  if (!skipRender) {
+    resetCursor();
+    renderCalendar();
+  }
+}
+
+function resetCursor() {
+  const today = new Date();
+  if (calendarView === "day") {
+    calendarCursor = { year: today.getFullYear(), month: today.getMonth() };
+  } else if (calendarView === "month" || calendarView === "week") {
+    calendarCursor = { year: today.getFullYear() };
+  } else {
+    calendarCursor = null;
+  }
+}
+
+function navigateCalendar(direction) {
+  if (calendarView === "day") {
+    let { year, month } = calendarCursor;
+    month += direction;
+    if (month < 0) { month = 11; year -= 1; }
+    else if (month > 11) { month = 0; year += 1; }
+    calendarCursor = { year, month };
+  } else if (calendarView === "month" || calendarView === "week") {
+    calendarCursor = { year: calendarCursor.year + direction };
+  } else {
+    return;
+  }
+  renderCalendar();
+  triggerHaptic();
+}
+
+function renderCalendar() {
+  if (calendarView === "day") renderDayView();
+  else if (calendarView === "month") renderMonthView();
+  else if (calendarView === "week") renderWeekView();
+  else if (calendarView === "hour") renderHourView();
+  updateCalendarStats();
+}
+
+function renderDayView() {
+  const { year, month } = calendarCursor;
+  els.calendarTitle.textContent = `${year} 年 ${month + 1} 月`;
+
+  const todayIso = isoFromDate(new Date());
+  const todayMonthKey = todayIso.slice(0, 7);
+  const viewKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const retireIso = settings.retireDate || "";
+  const retireMonthKey = retireIso.slice(0, 7);
+
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireMonthKey ? viewKey >= retireMonthKey : viewKey >= todayMonthKey;
+
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  els.calendarDays.replaceChildren();
+
+  for (let i = 0; i < firstWeekday; i++) {
+    const blank = document.createElement("div");
+    blank.className = "day-cell day-cell--empty";
+    els.calendarDays.appendChild(blank);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const isToday = iso === todayIso;
+    const isRetirement = retireIso && iso === retireIso;
+    const isFuture = iso > todayIso;
+    const cell = buildCell({
+      key: iso,
+      label: String(d),
+      crossed: crossSets.day.has(iso),
+      today: isToday,
+      retirement: isRetirement,
+      disabled: isFuture,
+      ariaLabel: `${iso}${isToday ? " · 今天" : ""}${isRetirement ? " · 退休日" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function renderMonthView() {
+  const { year } = calendarCursor;
+  els.calendarTitle.textContent = `${year} 年`;
+
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const retireIso = settings.retireDate || "";
+  const retireYear = retireIso ? Number(retireIso.slice(0, 4)) : null;
+  const retireMonth = retireIso ? Number(retireIso.slice(5, 7)) - 1 : null;
+
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireYear !== null ? year >= retireYear : year >= todayYear;
+
+  els.calendarDays.replaceChildren();
+
+  for (let m = 0; m < 12; m++) {
+    const key = `${year}-${String(m + 1).padStart(2, "0")}`;
+    const isFuture = year > todayYear || (year === todayYear && m > todayMonth);
+    const isThisMonth = year === todayYear && m === todayMonth;
+    const isRetirementMonth = retireYear !== null && year === retireYear && m === retireMonth;
+    const cell = buildCell({
+      key,
+      label: `${m + 1} 月`,
+      crossed: crossSets.month.has(key),
+      today: isThisMonth,
+      retirement: isRetirementMonth,
+      disabled: isFuture,
+      ariaLabel: `${year} 年 ${m + 1} 月${isThisMonth ? " · 本月" : ""}${isRetirementMonth ? " · 退休月" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function renderWeekView() {
+  const { year } = calendarCursor;
+  els.calendarTitle.textContent = `${year} 年 · 周`;
+
+  const today = new Date();
+  const todayWeek = isoWeekOf(today);
+  const retireIso = settings.retireDate || "";
+  const retireDate = retireIso ? new Date(`${retireIso}T00:00:00`) : null;
+  const retireWeek = retireDate ? isoWeekOf(retireDate) : null;
+
+  els.calendarPrev.disabled = false;
+  els.calendarNext.disabled = retireWeek ? year >= retireWeek.year : year >= todayWeek.year;
+
+  const total = isoWeeksInYear(year);
+  els.calendarDays.replaceChildren();
+
+  for (let w = 1; w <= total; w++) {
+    const key = `${year}-W${String(w).padStart(2, "0")}`;
+    const isFuture = year > todayWeek.year || (year === todayWeek.year && w > todayWeek.week);
+    const isThisWeek = year === todayWeek.year && w === todayWeek.week;
+    const isRetireWeek = retireWeek && year === retireWeek.year && w === retireWeek.week;
+    const { start, end } = isoWeekDates(year, w);
+    const range = `${start.getMonth() + 1}/${start.getDate()}-${end.getMonth() + 1}/${end.getDate()}`;
+    const cell = buildCell({
+      key,
+      label: `W${w}`,
+      sub: range,
+      crossed: crossSets.week.has(key),
+      today: isThisWeek,
+      retirement: isRetireWeek,
+      disabled: isFuture,
+      ariaLabel: `${key} · ${range}${isThisWeek ? " · 本周" : ""}${isRetireWeek ? " · 退休周" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function renderHourView() {
+  const today = new Date();
+  const todayIso = isoFromDate(today);
+  els.calendarTitle.textContent = `今日 ${today.getMonth() + 1} 月 ${today.getDate()} 日`;
+  els.calendarPrev.disabled = true;
+  els.calendarNext.disabled = true;
+
+  const retireIso = settings.retireDate || "";
+  const reachedRetirement = retireIso && todayIso > retireIso;
+  const currentHour = today.getHours();
+  els.calendarDays.replaceChildren();
+
+  for (let h = 0; h < 24; h++) {
+    const key = `${todayIso}T${String(h).padStart(2, "0")}`;
+    const isNow = h === currentHour;
+    const isFuture = h > currentHour;
+    const cell = buildCell({
+      key,
+      label: `${String(h).padStart(2, "0")}:00`,
+      crossed: crossSets.hour.has(key),
+      today: isNow,
+      disabled: reachedRetirement || isFuture,
+      ariaLabel: `${todayIso} ${h} 时${isNow ? " · 当前" : ""}`,
+    });
+    els.calendarDays.appendChild(cell);
+  }
+}
+
+function buildCell({ key, label, sub, crossed, today, retirement, disabled, ariaLabel }) {
+  const cell = document.createElement("button");
+  cell.type = "button";
+  cell.className = "day-cell";
+  cell.dataset.key = key;
+  cell.setAttribute("role", "gridcell");
+  if (today) cell.classList.add("day-cell--today");
+  if (retirement) cell.classList.add("day-cell--retirement");
+  if (disabled) { cell.classList.add("day-cell--disabled"); cell.disabled = true; }
+  cell.setAttribute("aria-pressed", String(!!crossed));
+  if (ariaLabel) cell.setAttribute("aria-label", `${ariaLabel} · ${crossed ? "已划掉" : "未划掉"}`);
+
+  const num = document.createElement("span");
+  num.className = "day-num";
+  num.textContent = label;
+  cell.appendChild(num);
+
+  if (sub) {
+    const subEl = document.createElement("span");
+    subEl.className = "day-sub";
+    subEl.textContent = sub;
+    cell.appendChild(subEl);
+  }
+
+  cell.appendChild(createCrossSvg());
+
+  if (retirement) {
+    const flag = document.createElement("span");
+    flag.className = "day-flag";
+    flag.textContent = "退休";
+    cell.appendChild(flag);
+  }
+  return cell;
+}
+
+function createCrossSvg() {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", "day-cross");
+  svg.setAttribute("viewBox", "0 0 32 32");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of ["M7 8 L25 24", "M25 8 L7 24"]) {
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
+function toggleCross(view, key, cell) {
+  const set = crossSets[view];
+  if (!set) return;
+  if (set.has(key)) set.delete(key);
+  else set.add(key);
+  const pressed = set.has(key);
+  cell.setAttribute("aria-pressed", String(pressed));
+  settings.crossedMarks = {
+    day: Array.from(crossSets.day).sort(),
+    month: Array.from(crossSets.month).sort(),
+    week: Array.from(crossSets.week).sort(),
+    hour: Array.from(crossSets.hour).sort(),
+  };
+  saveSettings();
+  triggerHaptic(pressed ? "Medium" : "Light");
+  updateCalendarStats();
+}
+
+function updateCalendarStats() {
+  const total = crossSets[calendarView]?.size ?? 0;
+  const unit = { day: "天", month: "月", week: "周", hour: "时" }[calendarView] || "项";
+  els.calendarStats.textContent = total > 0
+    ? `已划掉 ${total} ${unit}`
+    : `点击${unit === "天" ? "日期" : unit + "块"}标记已过`;
+}
+
+function isoFromDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function isoWeekOf(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+function isoWeeksInYear(year) {
+  const jan1 = new Date(year, 0, 1).getDay();
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  return jan1 === 4 || (isLeap && jan1 === 3) ? 53 : 52;
+}
+
+function isoWeekDates(year, week) {
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay() || 7;
+  const monday = new Date(year, 0, 4 - jan4Day + 1 + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
+
+async function setupBackButton() {
+  if (!isNative()) return;
+  try {
+    const { App } = await import("@capacitor/app");
+    App.addListener("backButton", () => {
+      if (els.pickerSheet.open) {
+        closePicker();
+        return;
+      }
+      if (els.calendarSheet.open) {
+        closeCalendar();
+        return;
+      }
+      if (els.settingsDialog.open) {
+        closeSettingsDialog();
+        return;
+      }
+      App.minimizeApp();
+    });
+  } catch {
+    // App plugin unavailable; let default behavior take over
+  }
+}
+
+function setupSheetDragToClose() {
+  attachDragToClose(els.settingsHandle, els.settingsDialog, closeSettingsDialog);
+  attachDragToClose(els.pickerHandle, els.pickerSheet, closePicker);
+  attachDragToClose(els.calendarHandle, els.calendarSheet, closeCalendar);
+}
+
+function attachDragToClose(handle, dialog, closeFn) {
+  if (!handle || !dialog) return;
+  const DRAG_THRESHOLD_PX = 80;
+  const VELOCITY_THRESHOLD = 0.5; // px per ms
+
+  let startY = 0;
+  let startTime = 0;
+  let dragging = false;
+  let translate = 0;
+
+  function reset() {
+    dragging = false;
+    dialog.style.transition = "transform 0.25s cubic-bezier(.2,.7,.2,1)";
+    dialog.style.transform = "";
+    requestAnimationFrame(() => {
+      dialog.style.transition = "";
+    });
+  }
+
+  handle.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1) return;
+    startY = event.touches[0].clientY;
+    startTime = Date.now();
+    translate = 0;
+    dragging = true;
+    dialog.style.transition = "none";
+  }, { passive: true });
+
+  handle.addEventListener("touchmove", (event) => {
+    if (!dragging || event.touches.length !== 1) return;
+    const dy = event.touches[0].clientY - startY;
+    translate = Math.max(0, dy);
+    dialog.style.transform = `translateY(${translate}px)`;
+  }, { passive: true });
+
+  handle.addEventListener("touchend", () => {
+    if (!dragging) return;
+    const duration = Math.max(Date.now() - startTime, 1);
+    const velocity = translate / duration;
+    if (translate > DRAG_THRESHOLD_PX || velocity > VELOCITY_THRESHOLD) {
+      closeFn();
+    }
+    reset();
+  });
+
+  handle.addEventListener("touchcancel", reset);
 }
 
 function refreshPolicyCalculation() {
@@ -334,14 +1082,48 @@ function renderMonthBand(target) {
   }
 }
 
-async function requestNotifications() {
-  if (isNative()) {
-    const permission = await LocalNotifications.requestPermissions();
-    await ensureAndroidNotificationChannel();
-    updatePermissionState();
+async function setupReminderToggle() {
+  if (settings.remindersEnabled === null || settings.remindersEnabled === undefined) {
+    settings.remindersEnabled = await isNotificationPermissionGranted();
+    saveSettings();
+  }
+  applyReminderSwitchState();
+  const row = document.querySelector("#reminderSwitchRow");
+  (row ?? els.remindersToggle).addEventListener("click", toggleReminders);
+}
 
-    if (permission.display === "granted") {
-      await scheduleReminder();
+function applyReminderSwitchState() {
+  const on = !!settings.remindersEnabled;
+  els.remindersToggle.setAttribute("aria-checked", String(on));
+  els.reminderDetails.dataset.open = String(on);
+  els.reminderDetails.setAttribute("aria-hidden", String(!on));
+  els.reminderStatus.classList.remove("warning");
+  els.reminderStatus.textContent = on ? "已开启" : "已关闭";
+}
+
+async function toggleReminders() {
+  const target = !settings.remindersEnabled;
+  triggerHaptic();
+
+  if (target) {
+    const granted = await ensureNotificationPermission();
+    if (!granted) {
+      els.reminderStatus.textContent = "通知被拒绝,请到系统设置开启";
+      els.reminderStatus.classList.add("warning");
+      triggerHaptic("Medium");
+      return;
+    }
+  } else {
+    await cancelNativeReminder();
+  }
+
+  settings.remindersEnabled = target;
+  saveSettings();
+  applyReminderSwitchState();
+  await scheduleReminder();
+
+  if (target && isNative()) {
+    try {
       await LocalNotifications.schedule({
         notifications: [
           {
@@ -352,26 +1134,49 @@ async function requestNotifications() {
           },
         ],
       });
-    }
-    return;
-  }
-
-  if (!("Notification" in window)) {
-    updatePermissionState("当前浏览器不支持通知");
-    return;
-  }
-
-  const permission = await Notification.requestPermission();
-  updatePermissionState();
-
-  if (permission === "granted") {
+    } catch {}
+  } else if (target && !isNative()) {
     showWebNotification("退休倒计时已开启", "之后会按你设置的时间提醒。");
-    scheduleReminder();
   }
+}
+
+async function isNotificationPermissionGranted() {
+  if (isNative()) {
+    try {
+      const perm = await LocalNotifications.checkPermissions();
+      return perm.display === "granted";
+    } catch {
+      return false;
+    }
+  }
+  return "Notification" in window && Notification.permission === "granted";
+}
+
+async function ensureNotificationPermission() {
+  if (isNative()) {
+    try {
+      const perm = await LocalNotifications.requestPermissions();
+      await ensureAndroidNotificationChannel();
+      return perm.display === "granted";
+    } catch {
+      return false;
+    }
+  }
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
 }
 
 async function scheduleReminder() {
   window.clearTimeout(reminderTimer);
+
+  if (!settings.remindersEnabled) {
+    els.nextReminder.textContent = "未启用";
+    await cancelNativeReminder();
+    return;
+  }
 
   if (!settings.retireDate || !settings.reminderTime) {
     els.nextReminder.textContent = "未设置";
@@ -521,36 +1326,6 @@ function showWebNotification(title, body) {
     icon: "/icon.svg",
     tag: "retirement-countdown",
   });
-}
-
-async function updatePermissionState(customText) {
-  if (customText) {
-    els.permissionState.textContent = customText;
-    els.permissionState.classList.add("warning");
-    return;
-  }
-
-  if (isNative()) {
-    const permission = await LocalNotifications.checkPermissions();
-    const granted = permission.display === "granted";
-    els.permissionState.textContent = granted ? "通知已开启" : "通知未开启";
-    els.permissionState.classList.toggle("warning", !granted);
-    return;
-  }
-
-  const supported = "Notification" in window;
-  const permission = supported ? Notification.permission : "unsupported";
-  els.permissionState.classList.toggle("warning", permission !== "granted");
-
-  if (!supported) {
-    els.permissionState.textContent = "不支持通知";
-  } else if (permission === "granted") {
-    els.permissionState.textContent = "通知已开启";
-  } else if (permission === "denied") {
-    els.permissionState.textContent = "通知被拒绝";
-  } else {
-    els.permissionState.textContent = "通知未开启";
-  }
 }
 
 function getNextReminderTime(time) {

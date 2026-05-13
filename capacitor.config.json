@@ -5,6 +5,11 @@
   "plugins": {
     "LocalNotifications": {
       "iconColor": "#126c62"
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DEFAULT",
+      "backgroundColor": "#f7f4ed"
     }
   }
 }
