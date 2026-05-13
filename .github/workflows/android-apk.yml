@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android
 
 on:
   workflow_dispatch:
@@ -72,8 +72,48 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: retirement-countdown-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Check release signing availability
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ANDROID_KEYSTORE_BASE64 not set; skipping release AAB."
+          fi
+
+      - name: Decode keystore
+        if: steps.signing.outputs.available == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+
+      - name: Inject signing config
+        if: steps.signing.outputs.available == 'true'
+        run: node scripts/android-inject-signing.mjs
+
+      - name: Build release AAB
+        if: steps.signing.outputs.available == 'true'
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          ./gradlew bundleRelease
+
+      - name: Upload release AAB
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: retirement-countdown-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
