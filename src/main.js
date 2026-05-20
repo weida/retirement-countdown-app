@@ -539,7 +539,13 @@ function pickerTitleFor(field) {
 }
 
 function setupCalendar() {
-  els.hero.addEventListener("click", () => openCalendar("day"));
+  els.hero.addEventListener("click", () => {
+    if (!settings.retireDate) {
+      openSettingsDialog();
+    } else {
+      openCalendar("day");
+    }
+  });
   els.stamps.forEach((stamp) => {
     stamp.addEventListener("click", () => openCalendar(stamp.dataset.view));
   });
@@ -984,8 +990,26 @@ function refreshPolicyCalculation() {
 
   els.retireDate.value = result.finalDate;
   els.resultCard.hidden = false;
-  els.statutoryResult.textContent = `${result.statutoryDate}(${result.statutoryAgeText},延迟 ${result.delayMonths} 个月)`;
-  els.finalResult.textContent = `${result.finalDate}(${result.finalAgeText}${formatFlexSummary(result)})`;
+
+  // Update Timeline
+  document.getElementById("baseRetireDate").textContent = result.baseDate.slice(2);
+  document.getElementById("statutoryRetireDate").textContent = result.statutoryDate.slice(2);
+  document.getElementById("finalRetireDate").textContent = result.finalDate.slice(2);
+  
+  const delayLabel = document.getElementById("delayLabel");
+  delayLabel.textContent = `+${result.delayMonths}m`;
+  delayLabel.hidden = result.delayMonths === 0;
+  document.getElementById("delayArrow").style.opacity = result.delayMonths === 0 ? "0.3" : "1";
+
+  const flexLabel = document.getElementById("flexLabel");
+  const flexPrefix = result.flexMode === "early" ? "-" : "+";
+  flexLabel.textContent = `${flexPrefix}${result.appliedFlexMonths}m`;
+  flexLabel.hidden = result.appliedFlexMonths === 0;
+  document.getElementById("flexArrow").style.opacity = result.appliedFlexMonths === 0 ? "0.3" : "1";
+
+  // Update Summary
+  els.statutoryResult.textContent = `${result.statutoryDate}(${result.statutoryAgeText})`;
+  els.finalResult.textContent = `${result.finalDate}(${result.finalAgeText})`;
   els.policyNote.textContent = `${result.workerLabel};弹性提前/延迟统一按最多 ${FLEX_LIMIT_MONTHS} 个月处理。特殊工种、缴费年限等仍需以当地社保经办口径为准。`;
 
   return result;
@@ -1041,16 +1065,41 @@ function setEmptyCountdown() {
 
 function setHeroCount(value) {
   const text = String(value);
-  if (els.heroCount.textContent === text) return;
-  els.heroCount.textContent = text;
-  if (reduceMotionQuery.matches || typeof els.heroCount.animate !== "function") return;
-  els.heroCount.animate(
-    [
-      { transform: "translateY(-12px)", opacity: 0 },
-      { transform: "translateY(0)", opacity: 1 },
-    ],
-    { duration: 360, easing: "cubic-bezier(.2,.7,.2,1)" },
-  );
+  if (els.heroCount.dataset.value === text) return;
+  els.heroCount.dataset.value = text;
+  
+  // Clear existing reels
+  els.heroCount.replaceChildren();
+  
+  if (reduceMotionQuery.matches || isNaN(parseInt(text, 10))) {
+    els.heroCount.textContent = text;
+    return;
+  }
+
+  // Create reels for each digit
+  text.split("").forEach((char) => {
+    if (isNaN(parseInt(char, 10))) {
+      const span = document.createElement("span");
+      span.textContent = char;
+      els.heroCount.appendChild(span);
+      return;
+    }
+
+    const reel = document.createElement("div");
+    reel.className = "digit-reel";
+    // Create 0-9 spans
+    for (let i = 0; i <= 9; i++) {
+      const s = document.createElement("span");
+      s.textContent = String(i);
+      reel.appendChild(s);
+    }
+    els.heroCount.appendChild(reel);
+    
+    // Animate to position
+    requestAnimationFrame(() => {
+      reel.style.transform = `translateY(-${parseInt(char, 10) * 10}%)`;
+    });
+  });
 }
 
 function renderMonthBand(target) {
@@ -1078,6 +1127,20 @@ function renderMonthBand(target) {
     if (m >= retireMonth) li.classList.add("retired");
     if (m === retireMonth) li.classList.add("retire-month");
     li.textContent = MONTH_LABELS[m - 1];
+    
+    // Tooltip logic
+    const monthDate = new Date(year, m - 1, 1);
+    const today = startOfDay(new Date());
+    if (monthDate > today) {
+      const diff = monthDate.getTime() - today.getTime();
+      const days = Math.ceil(diff / dayMs());
+      li.setAttribute("data-tooltip", `距该月还有 ${days} 天`);
+    } else if (monthDate.getMonth() === today.getMonth() && monthDate.getFullYear() === today.getFullYear()) {
+      li.setAttribute("data-tooltip", "本月");
+    } else {
+      li.setAttribute("data-tooltip", "已过去");
+    }
+    
     els.monthDots.appendChild(li);
   }
 }
@@ -1328,14 +1391,93 @@ function showWebNotification(title, body) {
   });
 }
 
-function getNextReminderTime(time) {
-  const [hours, minutes] = time.split(":").map(Number);
-  const next = new Date();
-  next.setHours(hours || 0, minutes || 0, 0, 0);
-  if (next.getTime() <= Date.now()) {
-    next.setDate(next.getDate() + 1);
+async function generateShareImage() {
+  if (!settings.retireDate) {
+    alert("请先设置退休日期再分享。");
+    return;
   }
-  return next;
+
+  triggerHaptic("Medium");
+  const isDusk = settings.mood === "dusk";
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  
+  // High DPI support
+  const dpr = 2;
+  canvas.width = 600 * dpr;
+  canvas.height = 800 * dpr;
+  ctx.scale(dpr, dpr);
+
+  // Background
+  ctx.fillStyle = isDusk ? "#1a1411" : "#f7f4ed";
+  ctx.fillRect(0, 0, 600, 800);
+
+  // Card
+  ctx.fillStyle = isDusk ? "#2a201a" : "#ffffff";
+  ctx.shadowColor = "rgba(0,0,0,0.1)";
+  ctx.shadowBlur = 40;
+  ctx.beginPath();
+  ctx.roundRect(40, 80, 520, 600, 24);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Text colors
+  const textColor = isDusk ? "#f0e5d4" : "#1f2933";
+  const mutedColor = isDusk ? "#a89886" : "#6b7280";
+  const accentColor = isDusk ? "#d4a76a" : "#126c62";
+
+  // Eyebrow
+  ctx.font = "bold 14px sans-serif";
+  ctx.fillStyle = mutedColor;
+  ctx.letterSpacing = "2px";
+  ctx.fillText("RETIREMENT COUNTDOWN", 70, 130);
+
+  // Days
+  ctx.font = "bold 120px serif";
+  ctx.fillStyle = textColor;
+  ctx.textAlign = "center";
+  ctx.fillText(els.heroCount.dataset.value || "--", 300, 360);
+  
+  ctx.font = "30px serif";
+  ctx.fillStyle = accentColor;
+  ctx.fillText("天", 300, 420);
+
+  // Labels
+  ctx.font = "16px sans-serif";
+  ctx.fillStyle = mutedColor;
+  ctx.fillText(`今天: ${formatDate(new Date())}`, 300, 500);
+  ctx.fillText(`退休日: ${formatDate(new Date(settings.retireDate))}`, 300, 530);
+
+  // Footer / Branding
+  ctx.font = "14px sans-serif";
+  ctx.fillStyle = accentColor;
+  ctx.fillText("开启退休新节奏", 300, 640);
+
+  // Convert to blob and share/download
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], "retirement-countdown.png", { type: "image/png" });
+    
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "我的退休倒计时",
+          text: `我离退休还有 ${els.heroCount.dataset.value} 天！`,
+        });
+      } catch (err) {
+        if (err.name !== "AbortError") downloadImage(canvas);
+      }
+    } else {
+      downloadImage(canvas);
+    }
+  });
+}
+
+function downloadImage(canvas) {
+  const link = document.createElement("a");
+  link.download = "retirement-countdown.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
 }
 
 function formatDate(date) {

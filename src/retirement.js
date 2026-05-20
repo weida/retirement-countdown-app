@@ -38,6 +38,7 @@ export function calculateRetirementDate({
   const delayMonths = calculateDelayMonths(birth, rule);
   const statutoryAgeMonths = rule.baseAgeMonths + delayMonths;
   const statutoryDate = addMonths(birth, statutoryAgeMonths);
+  const baseDate = addMonths(birth, rule.baseAgeMonths);
   const normalizedFlexMonths = normalizeFlexMonths(flexMonths);
 
   let finalAgeMonths = statutoryAgeMonths;
@@ -57,6 +58,7 @@ export function calculateRetirementDate({
     workerType,
     workerLabel: rule.label,
     delayMonths,
+    baseDate: formatInputDate(baseDate),
     statutoryDate: formatInputDate(statutoryDate),
     statutoryAgeMonths,
     statutoryAgeText: formatAge(statutoryAgeMonths),

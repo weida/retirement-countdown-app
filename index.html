@@ -16,6 +16,13 @@
           <header class="card-top">
             <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
             <div class="card-actions">
+              <button class="icon-btn" id="shareBtn" type="button" aria-label="分享海报" title="分享">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <polyline points="16 6 12 2 8 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+              </button>
               <button class="icon-btn mood-toggle" id="moodToggle" type="button" aria-label="切换情绪主题" title="切换情绪">
                 <svg class="mood-icon mood-icon--sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4"></circle>
@@ -46,9 +53,20 @@
           </section>
         </div>
 
-        <button class="hero" type="button" data-view="day" aria-label="按日划掉,打开日历">
-          <span class="hero-number" id="heroCount">--</span>
-          <span class="hero-unit">天</span>
+        <button class="hero" id="heroBtn" type="button" data-view="day" aria-label="打开日历或设置">
+          <div class="hero-main">
+            <span class="hero-number" id="heroCount">--</span>
+            <span class="hero-unit" id="heroUnit">天</span>
+          </div>
+          <div class="hero-hint" id="heroHint" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span id="heroHintText">点击查看日历</span>
+          </div>
         </button>
 
         <div class="cluster cluster--bottom">
@@ -171,13 +189,36 @@
             </label>
 
             <div class="policy-result" id="policyResult" role="group" aria-label="政策计算结果" hidden>
-              <div aria-labelledby="statutoryResultLabel">
-                <span id="statutoryResultLabel">改革后法定退休日</span>
-                <strong id="statutoryResult">--</strong>
+              <div class="policy-timeline" id="policyTimeline">
+                <div class="timeline-step">
+                  <span class="step-label">原定退休</span>
+                  <strong class="step-date" id="baseRetireDate">--</strong>
+                </div>
+                <div class="timeline-arrow delay-arrow" id="delayArrow">
+                  <span class="arrow-label" id="delayLabel">+0m</span>
+                </div>
+                <div class="timeline-step">
+                  <span class="step-label">法定退休</span>
+                  <strong class="step-date" id="statutoryRetireDate">--</strong>
+                </div>
+                <div class="timeline-arrow flex-arrow" id="flexArrow">
+                  <span class="arrow-label" id="flexLabel">-0m</span>
+                </div>
+                <div class="timeline-step is-final">
+                  <span class="step-label">最终退休</span>
+                  <strong class="step-date" id="finalRetireDate">--</strong>
+                </div>
               </div>
-              <div aria-labelledby="finalResultLabel">
-                <span id="finalResultLabel">弹性调整后退休日</span>
-                <strong id="finalResult">--</strong>
+
+              <div class="policy-summary">
+                <div aria-labelledby="statutoryResultLabel">
+                  <span id="statutoryResultLabel">法定退休日</span>
+                  <strong id="statutoryResult">--</strong>
+                </div>
+                <div aria-labelledby="finalResultLabel">
+                  <span id="finalResultLabel">最终退休日</span>
+                  <strong id="finalResult">--</strong>
+                </div>
               </div>
             </div>
 
