@@ -98,6 +98,7 @@ const els = {
   reminderDetails: document.querySelector("#reminderDetails"),
   reminderStatus: document.querySelector("#reminderStatus"),
   moodToggle: document.querySelector("#moodToggle"),
+  shareBtn: document.querySelector("#shareBtn"),
   openSettings: document.querySelector("#openSettings"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsDialog: document.querySelector("#settingsDialog"),
@@ -223,6 +224,8 @@ function init() {
     applyMood();
     triggerHaptic();
   });
+
+  els.shareBtn?.addEventListener("click", generateShareImage);
 
   els.openSettings.addEventListener("click", openSettingsDialog);
   els.closeSettings.addEventListener("click", closeSettingsDialog);
@@ -1391,6 +1394,16 @@ function showWebNotification(title, body) {
   });
 }
 
+function getNextReminderTime(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  const next = new Date();
+  next.setHours(hours || 0, minutes || 0, 0, 0);
+  if (next.getTime() <= Date.now()) {
+    next.setDate(next.getDate() + 1);
+  }
+  return next;
+}
+
 async function generateShareImage() {
   if (!settings.retireDate) {
     alert("请先设置退休日期再分享。");
@@ -1429,7 +1442,6 @@ async function generateShareImage() {
   // Eyebrow
   ctx.font = "bold 14px sans-serif";
   ctx.fillStyle = mutedColor;
-  ctx.letterSpacing = "2px";
   ctx.fillText("RETIREMENT COUNTDOWN", 70, 130);
 
   // Days
