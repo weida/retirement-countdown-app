@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- 1. 圆角底盘 (沿用 App 主色) -->
+  <rect width="128" height="128" rx="30" fill="#126C62"/>
+  
+  <!-- 2. 沙漏上半部 (半透明，代表流逝的时间) -->
+  <path d="M38 32 H90 L64 64 Z" fill="rgba(255, 253, 248, 0.15)"/>
+  
+  <!-- 3. 沙漏下半部 (实色，代表沉淀出的美好) -->
+  <path d="M38 96 H90 L64 64 Z" fill="#FFFDF8"/>
+  
+  <!-- 4. 远方元素 (沙漏底部的风景细节) -->
+  <!-- 夕阳 -->
+  <circle cx="76" cy="78" r="7" fill="#D4A76A"/>
+  <!-- 极简棕榈树 (两条曲线) -->
+  <path d="M50 96 Q53 82 44 76 M53 82 Q64 84 66 78" 
+        fill="none" stroke="#126C62" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- 5. 正在下落的沙粒 (连接点) -->
+  <rect x="63" y="61" width="2" height="6" rx="1" fill="#D4A76A"/>
+</svg>
