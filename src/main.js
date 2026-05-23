@@ -1659,30 +1659,33 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
   ctx.letterSpacing = "9.6px"; // 0.4em of 24
   ctx.fillText("退休倒计时", centerX, 160);
 
-  // 2. Hero group — main-group center at y=660 (top:660 + translateY(-50%)),
-  //    stacked column: hero (320px line-height 0.9) then "天" (48px) with
-  //    margin-top 20.
-  //    Approx heights: hero line-box = 288, unit line-box ≈ 57.6, gap = 20.
-  //    Group total ≈ 365.6 → group top ≈ 477.
-  const groupTop = 660 - (320 * 0.9 + 20 + 48 * 1.2) / 2;
-
-  // Hero number — use alphabetic baseline computed from font metrics to
-  // place the glyph correctly within its 0.9em line box.
+  // 2. Hero group — stacked column with the hero number visually centered
+  //    a touch above middle (y≈720). We position from the *actual* ink box
+  //    rather than the CSS line-box, because digits in Newsreader have a
+  //    near-zero descender (5px) — using line-box math leaves an unwanted
+  //    50-80px gap above the unit.
   ctx.fillStyle = theme.hero;
   ctx.font = `700 320px ${POSTER_SERIF}`;
   ctx.letterSpacing = "-12.8px"; // -0.04em of 320
   const heroMetrics = ctx.measureText(days);
-  const heroAsc = heroMetrics.fontBoundingBoxAscent ||
-    heroMetrics.actualBoundingBoxAscent || 240;
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(days, centerX, groupTop + heroAsc);
+  const heroAsc = heroMetrics.actualBoundingBoxAscent || 245;
+  const heroDesc = heroMetrics.actualBoundingBoxDescent || 5;
 
-  // Unit "天" — 48px serif 500, ls 0.1em, sits 20px below hero line-box bottom
+  const heroVisualCenterY = 700;
+  const heroBaselineY = heroVisualCenterY + (heroAsc - heroDesc) / 2;
+  const heroInkBottom = heroBaselineY + heroDesc;
+
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(days, centerX, heroBaselineY);
+
+  // Unit "天" — sits a deliberate 32px below the hero's *visible* ink
+  //   bottom (not the line-box bottom), so the perceived gap matches
+  //   the designer's intent regardless of font descender metrics.
   ctx.fillStyle = theme.accent;
   ctx.font = `500 48px ${POSTER_SERIF}`;
   ctx.letterSpacing = "4.8px";
   ctx.textBaseline = "top";
-  ctx.fillText("天", centerX, groupTop + 320 * 0.9 + 20);
+  ctx.fillText("天", centerX, heroInkBottom + 32);
 
   // 3. Slogan — top:960, 36px serif, ls 0.15em, accent color
   ctx.fillStyle = theme.accent;
