@@ -1414,56 +1414,18 @@ async function generateShareImage() {
   const isDusk = settings.mood === "dusk";
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  
-  // High DPI support
+
   const dpr = 2;
   canvas.width = 600 * dpr;
   canvas.height = 800 * dpr;
   ctx.scale(dpr, dpr);
 
-  // Background
-  ctx.fillStyle = isDusk ? "#1a1411" : "#f7f4ed";
-  ctx.fillRect(0, 0, 600, 800);
-
-  // Card
-  ctx.fillStyle = isDusk ? "#2a201a" : "#ffffff";
-  ctx.shadowColor = "rgba(0,0,0,0.1)";
-  ctx.shadowBlur = 40;
-  ctx.beginPath();
-  ctx.roundRect(40, 80, 520, 600, 24);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Text colors
-  const textColor = isDusk ? "#f0e5d4" : "#1f2933";
-  const mutedColor = isDusk ? "#a89886" : "#6b7280";
-  const accentColor = isDusk ? "#d4a76a" : "#126c62";
-
-  // Eyebrow
-  ctx.font = "bold 14px sans-serif";
-  ctx.fillStyle = mutedColor;
-  ctx.fillText("RETIREMENT COUNTDOWN", 70, 130);
-
-  // Days
-  ctx.font = "bold 120px serif";
-  ctx.fillStyle = textColor;
-  ctx.textAlign = "center";
-  ctx.fillText(els.heroCount.dataset.value || "--", 300, 360);
-  
-  ctx.font = "30px serif";
-  ctx.fillStyle = accentColor;
-  ctx.fillText("天", 300, 420);
-
-  // Labels
-  ctx.font = "16px sans-serif";
-  ctx.fillStyle = mutedColor;
-  ctx.fillText(`今天: ${formatDate(new Date())}`, 300, 500);
-  ctx.fillText(`退休日: ${formatDate(new Date(settings.retireDate))}`, 300, 530);
-
-  // Footer / Branding
-  ctx.font = "14px sans-serif";
-  ctx.fillStyle = accentColor;
-  ctx.fillText("开启退休新节奏", 300, 640);
+  drawSharePoster(ctx, {
+    isDusk,
+    days: els.heroCount.dataset.value || "--",
+    today: formatDate(new Date()),
+    retireDate: formatDate(new Date(settings.retireDate)),
+  });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) {
@@ -1495,6 +1457,104 @@ async function generateShareImage() {
   } else {
     downloadImage(canvas);
   }
+}
+
+const POSTER_SERIF = '"Newsreader", "Noto Serif SC", "Songti SC", serif';
+const POSTER_SANS = 'Inter, system-ui, -apple-system, sans-serif';
+
+function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
+  const theme = isDusk
+    ? {
+        bg: "#1A1411",
+        primary: "#D4A76A",
+        secondary: "#F0E5D4",
+        muted: "#A89886",
+        glow: { x: 300, y: 550, radius: 500, color: "rgba(212,167,106,0.15)", stop: 0.8 },
+        slogan: "Life begins at retirement",
+      }
+    : {
+        bg: "#F7F4ED",
+        primary: "#126C62",
+        secondary: "#1F2933",
+        muted: "#6B7280",
+        glow: { x: 500, y: 100, radius: 400, color: "rgba(18,108,98,0.08)", stop: 0.7 },
+        slogan: "开启退休新节奏",
+      };
+
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, 600, 800);
+
+  const grad = ctx.createRadialGradient(
+    theme.glow.x, theme.glow.y, 0,
+    theme.glow.x, theme.glow.y, theme.glow.radius,
+  );
+  grad.addColorStop(0, theme.glow.color);
+  grad.addColorStop(theme.glow.stop, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 600, 800);
+
+  // 1. Eyebrow — top:80, 12px sans 700, letter-spacing 0.25em (=3px), uppercase
+  ctx.fillStyle = theme.muted;
+  ctx.font = `700 12px ${POSTER_SANS}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.letterSpacing = "3px";
+  ctx.fillText("RETIREMENT COUNTDOWN", 300, 80);
+
+  // 2. Hero number + unit, baseline-aligned, group horiz-centered, group vert-centered at y=360
+  ctx.fillStyle = theme.primary;
+  ctx.textBaseline = "alphabetic";
+
+  ctx.font = `700 140px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "-2.8px"; // -0.02em of 140
+  const heroW = ctx.measureText(days).width;
+  const heroMetrics = ctx.measureText(days);
+  const asc = heroMetrics.fontBoundingBoxAscent || heroMetrics.actualBoundingBoxAscent || 105;
+  const desc = heroMetrics.fontBoundingBoxDescent || heroMetrics.actualBoundingBoxDescent || 30;
+  const baselineY = 360 + (asc - desc) / 2;
+
+  ctx.font = `500 36px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "0px";
+  const unitW = ctx.measureText("天").width;
+
+  const groupW = heroW + 12 + unitW;
+  const startX = (600 - groupW) / 2;
+
+  ctx.font = `700 140px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "-2.8px";
+  ctx.textAlign = "left";
+  ctx.fillText(days, startX, baselineY);
+
+  ctx.font = `500 36px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "0px";
+  ctx.fillText("天", startX + heroW + 12, baselineY);
+
+  // 3. Slogan — top:520, 22px serif, letter-spacing 0.12em (=2.64px), secondary
+  ctx.fillStyle = theme.secondary;
+  ctx.font = `400 22px ${POSTER_SERIF}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.letterSpacing = "2.64px";
+  ctx.fillText(theme.slogan, 300, 520);
+
+  // 4. Footer dates — bottom:80 (container bottom at y=720), 14px sans, gap 10, ls 0.05em
+  ctx.fillStyle = theme.muted;
+  ctx.font = `400 14px ${POSTER_SANS}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.letterSpacing = "0.7px";
+
+  const lineH = 14 * 1.2;
+  const line2Bottom = 720;
+  const line1Bottom = line2Bottom - lineH - 10;
+  ctx.fillText(`今天：${today}`, 300, line1Bottom);
+  ctx.fillText(`退休日：${retireDate}`, 300, line2Bottom);
+
+  ctx.letterSpacing = "0px";
+}
+
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  window.__drawSharePoster = drawSharePoster;
 }
 
 async function shareImageNative(blob) {
