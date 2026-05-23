@@ -92,6 +92,20 @@ const els = {
   resultCard: document.querySelector("#policyResult"),
   statutoryResult: document.querySelector("#statutoryResult"),
   finalResult: document.querySelector("#finalResult"),
+  openExplainer: document.querySelector("#openExplainer"),
+  explainerSheet: document.querySelector("#explainerSheet"),
+  explainerClose: document.querySelector("#explainerClose"),
+  explainerAck: document.querySelector("#explainerAck"),
+  explainerHandle: document.querySelector("#explainerHandle"),
+  explainerBirth: document.querySelector("#explainerBirth"),
+  explainerWorker: document.querySelector("#explainerWorker"),
+  explainerStep1Desc: document.querySelector("#explainerStep1Desc"),
+  explainerStep1Date: document.querySelector("#explainerStep1Date"),
+  explainerStep2Desc: document.querySelector("#explainerStep2Desc"),
+  explainerStep2Date: document.querySelector("#explainerStep2Date"),
+  explainerStep3Desc: document.querySelector("#explainerStep3Desc"),
+  explainerStep3Note: document.querySelector("#explainerStep3Note"),
+  explainerFinalDate: document.querySelector("#explainerFinalDate"),
   reminderTime: document.querySelector("#reminderTime"),
   reminderText: document.querySelector("#reminderText"),
   remindersToggle: document.querySelector("#remindersToggle"),
@@ -227,6 +241,10 @@ async function init() {
 
   els.openSettings.addEventListener("click", openSettingsDialog);
   els.closeSettings.addEventListener("click", closeSettingsDialog);
+
+  els.openExplainer?.addEventListener("click", openExplainerSheet);
+  els.explainerClose?.addEventListener("click", closeExplainerSheet);
+  els.explainerAck?.addEventListener("click", closeExplainerSheet);
 
   setupPickers();
   setupCalendar();
@@ -411,6 +429,83 @@ function closeSettingsDialog() {
     els.settingsDialog.removeAttribute("open");
   }
   triggerHaptic();
+}
+
+function openExplainerSheet() {
+  if (!els.explainerSheet) return;
+  if (typeof els.explainerSheet.showModal === "function") {
+    els.explainerSheet.showModal();
+  } else {
+    els.explainerSheet.setAttribute("open", "");
+  }
+  triggerHaptic();
+}
+
+function closeExplainerSheet() {
+  if (!els.explainerSheet) return;
+  if (typeof els.explainerSheet.close === "function") {
+    els.explainerSheet.close();
+  } else {
+    els.explainerSheet.removeAttribute("open");
+  }
+  triggerHaptic();
+}
+
+function updateExplainer(calc) {
+  if (!els.openExplainer) return;
+
+  if (!calc) {
+    els.openExplainer.disabled = true;
+    els.openExplainer.title = "填写出生日期后可查看计算依据";
+    return;
+  }
+
+  els.openExplainer.disabled = false;
+  els.openExplainer.title = "";
+
+  const birthText = formatDate(parseDateOnly(els.birthDate.value));
+  els.explainerBirth.textContent = birthText;
+  els.explainerWorker.textContent = calc.workerLabel;
+
+  // Step 1: Original statutory retirement (before reform)
+  const baseAgeYears = Math.round((calc.statutoryAgeMonths - calc.delayMonths) / 12);
+  els.explainerStep1Desc.textContent = `${baseAgeYears} 岁`;
+  els.explainerStep1Date.textContent = formatDate(parseDateOnly(calc.baseDate));
+
+  // Step 2: Reform-adjusted statutory retirement
+  if (calc.delayMonths === 0) {
+    els.explainerStep2Desc.textContent = "未触及改革过渡，无延迟";
+  } else {
+    els.explainerStep2Desc.textContent = `延迟 ${calc.delayMonths} 个月`;
+  }
+  els.explainerStep2Date.textContent = formatDate(parseDateOnly(calc.statutoryDate));
+
+  // Step 3: Flexible adjustment
+  const requested = calc.requestedFlexMonths;
+  const applied = calc.appliedFlexMonths;
+  const step3Note = els.explainerStep3Note;
+  step3Note.hidden = true;
+  step3Note.textContent = "";
+
+  if (calc.flexMode === "statutory" || (calc.flexMode !== "early" && calc.flexMode !== "late")) {
+    els.explainerStep3Desc.textContent = "按法定退休年龄 · 未提前 / 未延迟";
+  } else if (calc.flexMode === "early") {
+    if (applied === 0 && requested > 0) {
+      els.explainerStep3Desc.textContent = `你选择提前 ${requested} 个月`;
+      step3Note.textContent = "受规则限制：弹性提前后不能低于原法定退休年龄，实际未提前。";
+      step3Note.hidden = false;
+    } else if (applied < requested) {
+      els.explainerStep3Desc.textContent = `你选择提前 ${requested} 个月 · 实际提前 ${applied} 个月`;
+      step3Note.textContent = "受规则限制：弹性提前后不能低于原法定退休年龄。";
+      step3Note.hidden = false;
+    } else {
+      els.explainerStep3Desc.textContent = `提前 ${applied} 个月`;
+    }
+  } else if (calc.flexMode === "late") {
+    els.explainerStep3Desc.textContent = applied > 0 ? `延迟 ${applied} 个月` : "未延迟";
+  }
+
+  els.explainerFinalDate.textContent = formatDate(parseDateOnly(calc.finalDate));
 }
 
 let _activePickerTrigger = null;
@@ -907,6 +1002,10 @@ async function setupBackButton() {
   try {
     const { App } = await import("@capacitor/app");
     App.addListener("backButton", () => {
+      if (els.explainerSheet?.open) {
+        closeExplainerSheet();
+        return;
+      }
       if (els.pickerSheet.open) {
         closePicker();
         return;
@@ -930,6 +1029,7 @@ function setupSheetDragToClose() {
   attachDragToClose(els.settingsHandle, els.settingsDialog, closeSettingsDialog);
   attachDragToClose(els.pickerHandle, els.pickerSheet, closePicker);
   attachDragToClose(els.calendarHandle, els.calendarSheet, closeCalendar);
+  attachDragToClose(els.explainerHandle, els.explainerSheet, closeExplainerSheet);
 }
 
 function attachDragToClose(handle, dialog, closeFn) {
@@ -989,12 +1089,14 @@ function refreshPolicyCalculation() {
 
   if (!policyMode) {
     els.policyNote.textContent = "手动日期适合特殊工种、已确认退休时间,或不适用企业职工法定退休年龄规则的情况。";
+    updateExplainer(null);
     return null;
   }
 
   if (!els.birthDate.value) {
     els.retireDate.value = "";
     els.policyNote.textContent = "填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。";
+    updateExplainer(null);
     return null;
   }
 
@@ -1028,6 +1130,8 @@ function refreshPolicyCalculation() {
   els.statutoryResult.textContent = `${result.statutoryDate}(${result.statutoryAgeText})`;
   els.finalResult.textContent = `${result.finalDate}(${result.finalAgeText})`;
   els.policyNote.textContent = `${result.workerLabel};弹性提前/延迟统一按最多 ${FLEX_LIMIT_MONTHS} 个月处理。特殊工种、缴费年限等仍需以当地社保经办口径为准。`;
+
+  updateExplainer(result);
 
   return result;
 }
