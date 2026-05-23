@@ -1285,10 +1285,22 @@ async function scheduleReminder() {
   }, Math.max(next.getTime() - Date.now(), 1000));
 }
 
+// Warnings that scheduleReminderSafely should clear on next success.
+// Permission-denied warnings ("通知被拒绝...") are intentionally excluded
+// because the underlying OS permission is still unfixed; that one is
+// cleared by applyReminderSwitchState when the user re-toggles.
+const TRANSIENT_REMINDER_WARNINGS = new Set([
+  "提醒初始化失败",
+  "提醒调度失败,请重试",
+]);
+
 async function scheduleReminderSafely() {
   try {
     await scheduleReminder();
-    if (els.reminderStatus?.textContent === "提醒调度失败,请重试") {
+    if (
+      els.reminderStatus?.classList.contains("warning") &&
+      TRANSIENT_REMINDER_WARNINGS.has(els.reminderStatus.textContent)
+    ) {
       applyReminderSwitchState();
     }
   } catch (err) {
