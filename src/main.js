@@ -155,15 +155,15 @@ const reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 init();
 
-function init() {
+async function init() {
   els.flexMonths.max = String(FLEX_LIMIT_MONTHS);
   els.flexMonths.setAttribute("aria-valuemax", String(FLEX_LIMIT_MONTHS));
   applySettingsToForm();
   applyMood();
   refreshPolicyCalculation();
   updateCountdown();
-  setupReminderToggle();
-  scheduleReminder();
+  await setupReminderToggle();
+  await scheduleReminder();
 
   [
     els.calculationMode,
@@ -1424,7 +1424,7 @@ async function generateShareImage() {
     isDusk,
     days: els.heroCount.dataset.value || "--",
     today: formatDate(new Date()),
-    retireDate: formatDate(new Date(settings.retireDate)),
+    retireDate: formatDate(parseDateOnly(settings.retireDate)),
   });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));

@@ -36,7 +36,11 @@ self.addEventListener("fetch", (event) => {
         return response;
       } catch (error) {
         const cached = await cache.match(event.request);
-        return cached || cache.match("/index.html");
+        if (cached) return cached;
+        if (event.request.mode === "navigate") {
+          return cache.match("/index.html");
+        }
+        return Response.error();
       }
     }),
   );
