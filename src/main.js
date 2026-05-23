@@ -1456,10 +1456,8 @@ async function generateShareImage() {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  const dpr = 2;
-  canvas.width = 600 * dpr;
-  canvas.height = 800 * dpr;
-  ctx.scale(dpr, dpr);
+  canvas.width = POSTER_WIDTH;
+  canvas.height = POSTER_HEIGHT;
 
   drawSharePoster(ctx, {
     isDusk,
@@ -1502,94 +1500,129 @@ async function generateShareImage() {
 
 const POSTER_SERIF = '"Newsreader", "Noto Serif SC", "Songti SC", serif';
 const POSTER_SANS = 'Inter, system-ui, -apple-system, sans-serif';
+const POSTER_WIDTH = 1080;
+const POSTER_HEIGHT = 1440;
 
 function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
+  // Color hierarchy per v2 spec: hero uses `secondary`, unit + slogan
+  // use `accent`, eyebrow + footer use `muted`.
   const theme = isDusk
     ? {
         bg: "#1A1411",
-        primary: "#D4A76A",
-        secondary: "#F0E5D4",
-        muted: "#A89886",
-        glow: { x: 300, y: 550, radius: 500, color: "rgba(212,167,106,0.15)", stop: 0.8 },
+        hero: "#F0E5D4",
+        accent: "#D4A76A",
+        muted: "#8C8279",
+        glow: { x: 200, y: 1200, color: "rgba(212,167,106,0.12)" },
         slogan: "Life begins at retirement",
       }
     : {
-        bg: "#F7F4ED",
-        primary: "#126C62",
-        secondary: "#1F2933",
-        muted: "#6B7280",
-        glow: { x: 500, y: 100, radius: 400, color: "rgba(18,108,98,0.08)", stop: 0.7 },
-        slogan: "开启退休新节奏",
+        bg: "#FBF9F6",
+        hero: "#1A1A1A",
+        accent: "#126C62",
+        muted: "#8C8C8C",
+        glow: { x: 900, y: 200, color: "rgba(18,108,98,0.06)" },
+        slogan: "每天都离自由近一点",
       };
 
   ctx.fillStyle = theme.bg;
-  ctx.fillRect(0, 0, 600, 800);
+  ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
 
+  // Radial glow — CSS `radial-gradient(circle at X Y, color 0%, transparent 70%)`
+  // with default `farthest-corner` sizing. Translate the 70% stop into canvas by
+  // running the gradient out to the farthest-corner distance from (gx, gy).
+  const corners = [
+    [0, 0], [POSTER_WIDTH, 0], [0, POSTER_HEIGHT], [POSTER_WIDTH, POSTER_HEIGHT],
+  ];
+  const farthest = Math.max(
+    ...corners.map(([x, y]) => Math.hypot(x - theme.glow.x, y - theme.glow.y)),
+  );
   const grad = ctx.createRadialGradient(
     theme.glow.x, theme.glow.y, 0,
-    theme.glow.x, theme.glow.y, theme.glow.radius,
+    theme.glow.x, theme.glow.y, farthest,
   );
   grad.addColorStop(0, theme.glow.color);
-  grad.addColorStop(theme.glow.stop, "rgba(0,0,0,0)");
+  grad.addColorStop(0.7, "rgba(0,0,0,0)");
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 600, 800);
+  ctx.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
 
-  // 1. Eyebrow — top:80, 12px sans 700, letter-spacing 0.25em (=3px), uppercase
+  const centerX = POSTER_WIDTH / 2;
+
+  // 1. Eyebrow "退休倒计时" — top:160, 24px sans 500, letter-spacing 0.4em
   ctx.fillStyle = theme.muted;
-  ctx.font = `700 12px ${POSTER_SANS}`;
+  ctx.font = `500 24px ${POSTER_SANS}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.letterSpacing = "3px";
-  ctx.fillText("RETIREMENT COUNTDOWN", 300, 80);
+  ctx.letterSpacing = "9.6px"; // 0.4em of 24
+  ctx.fillText("退休倒计时", centerX, 160);
 
-  // 2. Hero number + unit, baseline-aligned, group horiz-centered, group vert-centered at y=360
-  ctx.fillStyle = theme.primary;
-  ctx.textBaseline = "alphabetic";
+  // 2. Hero group — main-group center at y=660 (top:660 + translateY(-50%)),
+  //    stacked column: hero (320px line-height 0.9) then "天" (48px) with
+  //    margin-top 20.
+  //    Approx heights: hero line-box = 288, unit line-box ≈ 57.6, gap = 20.
+  //    Group total ≈ 365.6 → group top ≈ 477.
+  const groupTop = 660 - (320 * 0.9 + 20 + 48 * 1.2) / 2;
 
-  ctx.font = `700 140px ${POSTER_SERIF}`;
-  ctx.letterSpacing = "-2.8px"; // -0.02em of 140
-  const heroW = ctx.measureText(days).width;
+  // Hero number — use alphabetic baseline computed from font metrics to
+  // place the glyph correctly within its 0.9em line box.
+  ctx.fillStyle = theme.hero;
+  ctx.font = `700 320px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "-12.8px"; // -0.04em of 320
   const heroMetrics = ctx.measureText(days);
-  const asc = heroMetrics.fontBoundingBoxAscent || heroMetrics.actualBoundingBoxAscent || 105;
-  const desc = heroMetrics.fontBoundingBoxDescent || heroMetrics.actualBoundingBoxDescent || 30;
-  const baselineY = 360 + (asc - desc) / 2;
+  const heroAsc = heroMetrics.fontBoundingBoxAscent ||
+    heroMetrics.actualBoundingBoxAscent || 240;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(days, centerX, groupTop + heroAsc);
 
-  ctx.font = `500 36px ${POSTER_SERIF}`;
-  ctx.letterSpacing = "0px";
-  const unitW = ctx.measureText("天").width;
+  // Unit "天" — 48px serif 500, ls 0.1em, sits 20px below hero line-box bottom
+  ctx.fillStyle = theme.accent;
+  ctx.font = `500 48px ${POSTER_SERIF}`;
+  ctx.letterSpacing = "4.8px";
+  ctx.textBaseline = "top";
+  ctx.fillText("天", centerX, groupTop + 320 * 0.9 + 20);
 
-  const groupW = heroW + 12 + unitW;
-  const startX = (600 - groupW) / 2;
-
-  ctx.font = `700 140px ${POSTER_SERIF}`;
-  ctx.letterSpacing = "-2.8px";
-  ctx.textAlign = "left";
-  ctx.fillText(days, startX, baselineY);
-
-  ctx.font = `500 36px ${POSTER_SERIF}`;
-  ctx.letterSpacing = "0px";
-  ctx.fillText("天", startX + heroW + 12, baselineY);
-
-  // 3. Slogan — top:520, 22px serif, letter-spacing 0.12em (=2.64px), secondary
-  ctx.fillStyle = theme.secondary;
-  ctx.font = `400 22px ${POSTER_SERIF}`;
+  // 3. Slogan — top:960, 36px serif, ls 0.15em, accent color
+  ctx.fillStyle = theme.accent;
+  ctx.font = `400 36px ${POSTER_SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.letterSpacing = "2.64px";
-  ctx.fillText(theme.slogan, 300, 520);
+  ctx.letterSpacing = "5.4px"; // 0.15em of 36
+  ctx.fillText(theme.slogan, centerX, 960);
 
-  // 4. Footer dates — bottom:80 (container bottom at y=720), 14px sans, gap 10, ls 0.05em
+  // 4. Footer info — bottom:160, column gap 20, muted color
+  //    Dates row: 24px sans ls 0.05em, two items with gap 40.
+  //    Estimation note: 18px sans ls 0.05em opacity 0.8.
+  const estimationFontSize = 18;
+  const estimationLineH = estimationFontSize * 1.2;
+  const datesFontSize = 24;
+  const datesLineH = datesFontSize * 1.2;
+  const footerBottom = POSTER_HEIGHT - 160;
+  const estimationBottom = footerBottom;
+  const datesBottom = footerBottom - estimationLineH - 20;
+
   ctx.fillStyle = theme.muted;
-  ctx.font = `400 14px ${POSTER_SANS}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.letterSpacing = "0.7px";
 
-  const lineH = 14 * 1.2;
-  const line2Bottom = 720;
-  const line1Bottom = line2Bottom - lineH - 10;
-  ctx.fillText(`今天：${today}`, 300, line1Bottom);
-  ctx.fillText(`退休日：${retireDate}`, 300, line2Bottom);
+  // Dates row: render the two items centered with a 40px gap
+  ctx.font = `400 ${datesFontSize}px ${POSTER_SANS}`;
+  ctx.letterSpacing = "1.2px";
+  const todayText = `今天：${today}`;
+  const retireText = `退休日：${retireDate}`;
+  const todayW = ctx.measureText(todayText).width;
+  const retireW = ctx.measureText(retireText).width;
+  const rowGap = 40;
+  const rowW = todayW + rowGap + retireW;
+  ctx.textAlign = "left";
+  ctx.fillText(todayText, centerX - rowW / 2, datesBottom);
+  ctx.fillText(retireText, centerX - rowW / 2 + todayW + rowGap, datesBottom);
+
+  // Estimation note
+  ctx.textAlign = "center";
+  ctx.font = `400 ${estimationFontSize}px ${POSTER_SANS}`;
+  ctx.letterSpacing = "0.9px";
+  ctx.globalAlpha = 0.8;
+  ctx.fillText("按当前已选规则估算", centerX, estimationBottom);
+  ctx.globalAlpha = 1;
 
   ctx.letterSpacing = "0px";
 }
