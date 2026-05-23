@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>退休倒计时海报设计规范 (Canvas 2D API 兼容版)</title>
+    <title>退休倒计时海报设计规范 v2 (情绪化海报)</title>
     <style>
         /* 
-           ==== 设计说明 (DESIGN NOTES) ====
-           1. 尺寸: 600 x 800 px (3:4)
-           2. 导出建议: 在 Canvas 中以 2x (1200x1600) 绘制以保证高分屏清晰度，坐标按比例缩放即可。
-           3. 兼容性: 仅使用 Canvas 2D API 支持的属性（实色、渐变、阴影、基础排版）。
+           ==== 设计说明 (DESIGN NOTES V2) ====
+           1. 尺寸: 1080 x 1440 px (3:4 高清版)
+           2. 适配: 针对微信/朋友圈图片预览优化，增加上下留白。
+           3. 兼容性: 仅使用 Canvas 2D API 兼容属性。
         */
 
         :root {
-            /* Theme: Day (Morning Breeze) */
-            --day-bg: #F7F4ED;
-            --day-accent-light: rgba(18, 108, 98, 0.08);
-            --day-primary: #126C62;
-            --day-secondary: #1F2933;
-            --day-muted: #6B7280;
+            /* Theme: Day (白昼) */
+            --day-bg: #FBF9F6;          /* 暖白底 */
+            --day-accent-light: rgba(18, 108, 98, 0.06);
+            --day-primary: #126C62;     /* 青绿色强调 */
+            --day-secondary: #1A1A1A;    /* 深墨文字 */
+            --day-muted: #8C8C8C;
 
-            /* Theme: Dusk (Golden Hour) */
-            --dusk-bg: #1A1411;
-            --dusk-accent-light: rgba(212, 167, 106, 0.15);
-            --dusk-primary: #D4A76A;
-            --dusk-secondary: #F0E5D4;
-            --dusk-muted: #A89886;
+            /* Theme: Dusk (傍晚) */
+            --dusk-bg: #1A1411;         /* 深棕黑底 */
+            --dusk-accent-light: rgba(212, 167, 106, 0.12);
+            --dusk-primary: #D4A76A;    /* 金色强调 */
+            --dusk-secondary: #F0E5D4;   /* 米白文字 */
+            --dusk-muted: #8C8279;
 
             --serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
             --sans: Inter, system-ui, -apple-system, sans-serif;
@@ -33,170 +33,180 @@
 
         body {
             margin: 0;
-            padding: 40px;
-            background: #e5e7eb;
+            padding: 60px;
+            background: #f0f0f0;
             font-family: var(--sans);
             display: flex;
             flex-wrap: wrap;
-            gap: 40px;
+            gap: 60px;
             justify-content: center;
         }
 
         .poster-container {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
 
         .label {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 700;
-            color: #4b5563;
+            color: #666;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.1em;
         }
 
         /* ==== 核心海报样式 (Poster Core Styles) ==== */
         .poster {
-            width: 600px;
-            height: 800px;
+            width: 1080px;
+            height: 1440px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            background-color: white; /* fallback */
+            box-shadow: 0 40px 100px rgba(0,0,0,0.12);
+            background-color: white;
+            /* 整体缩放预览 (实际 Canvas 绘制不缩放) */
+            zoom: 0.5; 
         }
 
-        /* 统一居中容器 */
-        .canvas-layer {
+        /* 1. 顶部小字 (退休倒计时) */
+        .eyebrow {
             position: absolute;
-            inset: 0;
+            top: 160px; /* 预留充足顶部留白 */
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: 0.4em;
+            text-indent: 0.4em; /* 居中修正 */
+        }
+
+        /* 2. 中心大数字容器 */
+        .main-group {
+            position: absolute;
+            top: 660px; /* 视觉中心偏上 */
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        /* 1. 小标题 (RETIREMENT COUNTDOWN) */
-        .eyebrow {
-            position: absolute;
-            top: 80px; /* Y: 80 */
-            width: 100%;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-        }
-
-        /* 2. 主数字与单位容器 (Main Group) */
-        .main-group {
-            position: absolute;
-            top: 360px; /* Y: 360 (Baseline-ish) */
-            display: flex;
-            align-items: baseline;
             justify-content: center;
-            transform: translateY(-50%); /* 垂直居中修正 */
+            transform: translateY(-50%);
         }
 
         .hero-number {
             font-family: var(--serif);
-            font-size: 140px;
+            font-size: 320px; /* 极具冲击力的大数字 */
             font-weight: 700;
-            line-height: 1;
-            letter-spacing: -0.02em;
+            line-height: 0.9;
+            letter-spacing: -0.04em;
         }
 
         .unit {
             font-family: var(--serif);
-            font-size: 36px;
+            font-size: 48px;
             font-weight: 500;
-            margin-left: 12px;
+            margin-top: 20px;
+            letter-spacing: 0.1em;
         }
 
-        /* 3. 标语 (Slogan) */
+        /* 3. 副文案 (Slogan) */
         .slogan {
             position: absolute;
-            top: 520px; /* Y: 520 */
+            top: 960px; 
             width: 100%;
             text-align: center;
             font-family: var(--serif);
-            font-size: 22px;
-            letter-spacing: 0.12em;
+            font-size: 36px;
+            letter-spacing: 0.15em;
         }
 
-        /* 4. 页脚日期 (Footer Dates) */
-        .footer-dates {
+        /* 4. 底部详细信息 */
+        .footer-info {
             position: absolute;
-            bottom: 80px; /* Y: 720 base */
+            bottom: 160px; /* 预留充足底部留白 */
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 20px;
             align-items: center;
-            font-size: 14px;
+        }
+
+        .dates-row {
+            display: flex;
+            gap: 40px;
+            font-size: 24px;
             letter-spacing: 0.05em;
         }
 
-        /* ==== 主题 A: 浅色 (Day) ==== */
+        .estimation-note {
+            font-size: 18px;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+
+        /* ==== 主题渲染 ==== */
         .poster--day {
             background-color: var(--day-bg);
-            /* 背景圆晕: ctx.createRadialGradient(500, 100, 0, 500, 100, 400) */
-            background-image: radial-gradient(circle at 500px 100px, var(--day-accent-light) 0%, transparent 70%);
+            background-image: radial-gradient(circle at 900px 200px, var(--day-accent-light) 0%, transparent 70%);
             color: var(--day-secondary);
         }
         .poster--day .eyebrow { color: var(--day-muted); }
-        .poster--day .hero-number, 
-        .poster--day .unit { color: var(--day-primary); }
-        .poster--day .slogan { color: var(--day-secondary); }
-        .poster--day .footer-dates { color: var(--day-muted); }
+        .poster--day .hero-number { color: var(--day-secondary); }
+        .poster--day .unit,
+        .poster--day .slogan { color: var(--day-primary); }
+        .poster--day .footer-info { color: var(--day-muted); }
 
-        /* ==== 主题 B: 深色 (Dusk) ==== */
         .poster--dusk {
             background-color: var(--dusk-bg);
-            /* 背景圆晕: ctx.createRadialGradient(300, 550, 0, 300, 550, 500) */
-            background-image: radial-gradient(circle at 300px 550px, var(--dusk-accent-light) 0%, transparent 80%);
+            background-image: radial-gradient(circle at 200px 1200px, var(--dusk-accent-light) 0%, transparent 70%);
             color: var(--dusk-secondary);
         }
         .poster--dusk .eyebrow { color: var(--dusk-muted); }
-        .poster--dusk .hero-number, 
-        .poster--dusk .unit { color: var(--dusk-primary); }
-        .poster--dusk .slogan { color: var(--dusk-secondary); }
-        .poster--dusk .footer-dates { color: var(--dusk-muted); }
+        .poster--dusk .hero-number { color: var(--dusk-secondary); }
+        .poster--dusk .unit,
+        .poster--dusk .slogan { color: var(--dusk-primary); }
+        .poster--dusk .footer-info { color: var(--dusk-muted); }
 
     </style>
 </head>
 <body>
 
-    <!-- 方案一: 中文标语 + 浅色主题 -->
+    <!-- 白昼主题预览 -->
     <div class="poster-container">
-        <div class="label">Light Theme / CN Slogan</div>
+        <div class="label">白昼主题 (Day)</div>
         <div class="poster poster--day">
-            <div class="eyebrow">Retirement Countdown</div>
+            <div class="eyebrow">退休倒计时</div>
             <div class="main-group">
                 <span class="hero-number">{{days}}</span>
                 <span class="unit">天</span>
             </div>
-            <div class="slogan">开启退休新节奏</div>
-            <div class="footer-dates">
-                <span>今天：{{today}}</span>
-                <span>退休日：{{retireDate}}</span>
+            <div class="slogan">每天都离自由近一点</div>
+            <div class="footer-info">
+                <div class="dates-row">
+                    <span>今天：{{today}}</span>
+                    <span>退休日：{{retireDate}}</span>
+                </div>
+                <div class="estimation-note">按当前已选规则估算</div>
             </div>
         </div>
     </div>
 
-    <!-- 方案二: 英文标语 + 深色主题 -->
+    <!-- 傍晚主题预览 -->
     <div class="poster-container">
-        <div class="label">Dusk Theme / EN Slogan</div>
+        <div class="label">傍晚主题 (Dusk)</div>
         <div class="poster poster--dusk">
-            <div class="eyebrow">Retirement Countdown</div>
+            <div class="eyebrow">退休倒计时</div>
             <div class="main-group">
                 <span class="hero-number">{{days}}</span>
                 <span class="unit">天</span>
             </div>
             <div class="slogan">Life begins at retirement</div>
-            <div class="footer-dates">
-                <span>今天：{{today}}</span>
-                <span>退休日：{{retireDate}}</span>
+            <div class="footer-info">
+                <div class="dates-row">
+                    <span>今天：{{today}}</span>
+                    <span>退休日：{{retireDate}}</span>
+                </div>
+                <div class="estimation-note">按当前已选规则估算</div>
             </div>
         </div>
     </div>
