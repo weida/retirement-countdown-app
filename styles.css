@@ -426,14 +426,14 @@ body[data-mood="dusk"] .mood-icon--moon {
   font-family: var(--serif);
   font-weight: 700;
   font-size: clamp(5.5rem, 17vw, 11rem);
-  line-height: 1;
+  line-height: 1.2;
   color: var(--text);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: flex-start;
   overflow: hidden;
-  height: 1em;
+  height: 1.2em;
 }
 
 .digit-reel {
@@ -444,8 +444,8 @@ body[data-mood="dusk"] .mood-icon--moon {
 }
 
 .digit-reel span {
-  height: 1em;
-  line-height: 1;
+  height: 1.2em;
+  line-height: 1.2;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -800,6 +800,7 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   font-family: var(--serif);
   color: var(--text-soft);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .timeline-step.is-final .step-label {
@@ -853,9 +854,11 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   margin-top: 3px;
   font-family: var(--serif);
   font-weight: 500;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: var(--accent-strong);
   line-height: 1.3;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .policy-fields[hidden],
@@ -1190,12 +1193,15 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 
 .date-cell {
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 10px 8px;
+  gap: 6px;
 }
 
 .date-cell .picker-value {
   text-align: center;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 0.92rem;
 }
 
 .picker-trigger svg {
