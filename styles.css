@@ -426,14 +426,14 @@ body[data-mood="dusk"] .mood-icon--moon {
   font-family: var(--serif);
   font-weight: 700;
   font-size: clamp(5.5rem, 17vw, 11rem);
-  line-height: 0.92;
+  line-height: 1;
   color: var(--text);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: flex-start;
   overflow: hidden;
-  height: 0.92em;
+  height: 1em;
 }
 
 .digit-reel {
@@ -444,8 +444,8 @@ body[data-mood="dusk"] .mood-icon--moon {
 }
 
 .digit-reel span {
-  height: 0.92em;
-  line-height: 0.92em;
+  height: 1em;
+  line-height: 1;
   flex-shrink: 0;
   display: flex;
   align-items: center;
