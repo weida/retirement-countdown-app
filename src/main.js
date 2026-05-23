@@ -1465,23 +1465,68 @@ async function generateShareImage() {
   ctx.fillStyle = accentColor;
   ctx.fillText("开启退休新节奏", 300, 640);
 
-  // Convert to blob and share/download
-  canvas.toBlob(async (blob) => {
-    const file = new File([blob], "retirement-countdown.png", { type: "image/png" });
-    
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: "我的退休倒计时",
-          text: `我离退休还有 ${els.heroCount.dataset.value} 天！`,
-        });
-      } catch (err) {
-        if (err.name !== "AbortError") downloadImage(canvas);
-      }
-    } else {
-      downloadImage(canvas);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) {
+    alert("生成图片失败,请稍后再试。");
+    return;
+  }
+
+  if (isNative()) {
+    try {
+      await shareImageNative(blob);
+    } catch (err) {
+      console.error("native share failed", err);
+      alert("分享失败,请稍后再试。");
     }
+    return;
+  }
+
+  const file = new File([blob], "retirement-countdown.png", { type: "image/png" });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: "我的退休倒计时",
+        text: `我离退休还有 ${els.heroCount.dataset.value} 天!`,
+      });
+    } catch (err) {
+      if (err.name !== "AbortError") downloadImage(canvas);
+    }
+  } else {
+    downloadImage(canvas);
+  }
+}
+
+async function shareImageNative(blob) {
+  const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+    import("@capacitor/filesystem"),
+    import("@capacitor/share"),
+  ]);
+  const base64 = await blobToBase64(blob);
+  const filename = `retirement-countdown-${Date.now()}.png`;
+  const written = await Filesystem.writeFile({
+    path: filename,
+    data: base64,
+    directory: Directory.Cache,
+  });
+  await Share.share({
+    title: "我的退休倒计时",
+    text: `我离退休还有 ${els.heroCount.dataset.value} 天!`,
+    url: written.uri,
+    dialogTitle: "分享我的退休倒计时",
+  });
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
   });
 }
 
