@@ -162,8 +162,6 @@ async function init() {
   applyMood();
   refreshPolicyCalculation();
   updateCountdown();
-  await setupReminderToggle();
-  await scheduleReminder();
 
   [
     els.calculationMode,
@@ -239,6 +237,21 @@ async function init() {
 
   if (!isNative() && "serviceWorker" in navigator) {
     navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+  }
+
+  // Reminder init runs after UI is wired so a notification scheduling
+  // failure (e.g. native LocalNotifications.schedule rejection) can't
+  // dead-shell the app. setupReminderToggle resolves the null permission
+  // state before scheduleReminder reads it, preserving the prior race fix.
+  try {
+    await setupReminderToggle();
+    await scheduleReminder();
+  } catch (err) {
+    console.error("reminder init failed", err);
+    if (els.reminderStatus) {
+      els.reminderStatus.textContent = "提醒初始化失败";
+      els.reminderStatus.classList.add("warning");
+    }
   }
 }
 
