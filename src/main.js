@@ -212,7 +212,7 @@ async function init() {
     saveSettings();
     triggerHaptic("Medium");
     updateCountdown();
-    await scheduleReminder();
+    await scheduleReminderSafely();
     closeSettingsDialog();
   });
 
@@ -240,19 +240,20 @@ async function init() {
   }
 
   // Reminder init runs after UI is wired so a notification scheduling
-  // failure (e.g. native LocalNotifications.schedule rejection) can't
-  // dead-shell the app. setupReminderToggle resolves the null permission
-  // state before scheduleReminder reads it, preserving the prior race fix.
+  // failure can't dead-shell the app. setupReminderToggle resolves the
+  // null permission state before scheduleReminderSafely reads it,
+  // preserving the prior race fix. scheduleReminderSafely owns its own
+  // catch + status fallback.
   try {
     await setupReminderToggle();
-    await scheduleReminder();
   } catch (err) {
-    console.error("reminder init failed", err);
+    console.error("setupReminderToggle failed", err);
     if (els.reminderStatus) {
       els.reminderStatus.textContent = "提醒初始化失败";
       els.reminderStatus.classList.add("warning");
     }
   }
+  await scheduleReminderSafely();
 }
 
 function loadSettings() {
@@ -1199,7 +1200,7 @@ async function toggleReminders() {
   settings.remindersEnabled = target;
   saveSettings();
   applyReminderSwitchState();
-  await scheduleReminder();
+  await scheduleReminderSafely();
 
   if (target && isNative()) {
     try {
@@ -1280,8 +1281,23 @@ async function scheduleReminder() {
 
   reminderTimer = window.setTimeout(() => {
     fireWebDailyReminder();
-    scheduleReminder();
+    scheduleReminderSafely();
   }, Math.max(next.getTime() - Date.now(), 1000));
+}
+
+async function scheduleReminderSafely() {
+  try {
+    await scheduleReminder();
+    if (els.reminderStatus?.textContent === "提醒调度失败,请重试") {
+      applyReminderSwitchState();
+    }
+  } catch (err) {
+    console.error("scheduleReminder failed", err);
+    if (els.reminderStatus) {
+      els.reminderStatus.textContent = "提醒调度失败,请重试";
+      els.reminderStatus.classList.add("warning");
+    }
+  }
 }
 
 async function scheduleNativeReminder(next) {
@@ -1333,7 +1349,7 @@ function fireWebDailyReminder() {
   updateCountdown();
   if (isRetired(settings.retireDate)) {
     notifyRetirementReachedOnce();
-    scheduleReminder();
+    scheduleReminderSafely();
     return;
   }
 
