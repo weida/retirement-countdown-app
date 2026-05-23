@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退休倒计时海报设计规范 (Canvas 2D API 兼容版)</title>
+    <style>
+        /* 
+           ==== 设计说明 (DESIGN NOTES) ====
+           1. 尺寸: 600 x 800 px (3:4)
+           2. 导出建议: 在 Canvas 中以 2x (1200x1600) 绘制以保证高分屏清晰度，坐标按比例缩放即可。
+           3. 兼容性: 仅使用 Canvas 2D API 支持的属性（实色、渐变、阴影、基础排版）。
+        */
+
+        :root {
+            /* Theme: Day (Morning Breeze) */
+            --day-bg: #F7F4ED;
+            --day-accent-light: rgba(18, 108, 98, 0.08);
+            --day-primary: #126C62;
+            --day-secondary: #1F2933;
+            --day-muted: #6B7280;
+
+            /* Theme: Dusk (Golden Hour) */
+            --dusk-bg: #1A1411;
+            --dusk-accent-light: rgba(212, 167, 106, 0.15);
+            --dusk-primary: #D4A76A;
+            --dusk-secondary: #F0E5D4;
+            --dusk-muted: #A89886;
+
+            --serif: "Newsreader", "Noto Serif SC", "Songti SC", serif;
+            --sans: Inter, system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #e5e7eb;
+            font-family: var(--sans);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+        }
+
+        .poster-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ==== 核心海报样式 (Poster Core Styles) ==== */
+        .poster {
+            width: 600px;
+            height: 800px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            background-color: white; /* fallback */
+        }
+
+        /* 统一居中容器 */
+        .canvas-layer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 1. 小标题 (RETIREMENT COUNTDOWN) */
+        .eyebrow {
+            position: absolute;
+            top: 80px; /* Y: 80 */
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+        }
+
+        /* 2. 主数字与单位容器 (Main Group) */
+        .main-group {
+            position: absolute;
+            top: 360px; /* Y: 360 (Baseline-ish) */
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            transform: translateY(-50%); /* 垂直居中修正 */
+        }
+
+        .hero-number {
+            font-family: var(--serif);
+            font-size: 140px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+
+        .unit {
+            font-family: var(--serif);
+            font-size: 36px;
+            font-weight: 500;
+            margin-left: 12px;
+        }
+
+        /* 3. 标语 (Slogan) */
+        .slogan {
+            position: absolute;
+            top: 520px; /* Y: 520 */
+            width: 100%;
+            text-align: center;
+            font-family: var(--serif);
+            font-size: 22px;
+            letter-spacing: 0.12em;
+        }
+
+        /* 4. 页脚日期 (Footer Dates) */
+        .footer-dates {
+            position: absolute;
+            bottom: 80px; /* Y: 720 base */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            font-size: 14px;
+            letter-spacing: 0.05em;
+        }
+
+        /* ==== 主题 A: 浅色 (Day) ==== */
+        .poster--day {
+            background-color: var(--day-bg);
+            /* 背景圆晕: ctx.createRadialGradient(500, 100, 0, 500, 100, 400) */
+            background-image: radial-gradient(circle at 500px 100px, var(--day-accent-light) 0%, transparent 70%);
+            color: var(--day-secondary);
+        }
+        .poster--day .eyebrow { color: var(--day-muted); }
+        .poster--day .hero-number, 
+        .poster--day .unit { color: var(--day-primary); }
+        .poster--day .slogan { color: var(--day-secondary); }
+        .poster--day .footer-dates { color: var(--day-muted); }
+
+        /* ==== 主题 B: 深色 (Dusk) ==== */
+        .poster--dusk {
+            background-color: var(--dusk-bg);
+            /* 背景圆晕: ctx.createRadialGradient(300, 550, 0, 300, 550, 500) */
+            background-image: radial-gradient(circle at 300px 550px, var(--dusk-accent-light) 0%, transparent 80%);
+            color: var(--dusk-secondary);
+        }
+        .poster--dusk .eyebrow { color: var(--dusk-muted); }
+        .poster--dusk .hero-number, 
+        .poster--dusk .unit { color: var(--dusk-primary); }
+        .poster--dusk .slogan { color: var(--dusk-secondary); }
+        .poster--dusk .footer-dates { color: var(--dusk-muted); }
+
+    </style>
+</head>
+<body>
+
+    <!-- 方案一: 中文标语 + 浅色主题 -->
+    <div class="poster-container">
+        <div class="label">Light Theme / CN Slogan</div>
+        <div class="poster poster--day">
+            <div class="eyebrow">Retirement Countdown</div>
+            <div class="main-group">
+                <span class="hero-number">{{days}}</span>
+                <span class="unit">天</span>
+            </div>
+            <div class="slogan">开启退休新节奏</div>
+            <div class="footer-dates">
+                <span>今天：{{today}}</span>
+                <span>退休日：{{retireDate}}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 方案二: 英文标语 + 深色主题 -->
+    <div class="poster-container">
+        <div class="label">Dusk Theme / EN Slogan</div>
+        <div class="poster poster--dusk">
+            <div class="eyebrow">Retirement Countdown</div>
+            <div class="main-group">
+                <span class="hero-number">{{days}}</span>
+                <span class="unit">天</span>
+            </div>
+            <div class="slogan">Life begins at retirement</div>
+            <div class="footer-dates">
+                <span>今天：{{today}}</span>
+                <span>退休日：{{retireDate}}</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
