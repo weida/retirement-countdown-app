@@ -94,6 +94,16 @@ export function isRetired(retireDate, now = new Date()) {
   return startOfDay(now).getTime() >= parseDateOnly(retireDate).getTime();
 }
 
+export function formatCountdownStatus({ days, remindersEnabled }) {
+  if (days > 1) {
+    return remindersEnabled
+      ? `还有 ${days} 天,每天定时提醒一次。`
+      : `还有 ${days} 天。`;
+  }
+  if (days === 1) return "明天就是退休日。";
+  return "退休日已到,祝你开启新的节奏。";
+}
+
 export function addMonths(date, months) {
   const copy = new Date(date);
   const day = copy.getDate();

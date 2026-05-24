@@ -3,6 +3,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import {
   FLEX_LIMIT_MONTHS,
   calculateRetirementDate,
+  formatCountdownStatus,
   isRetired,
   normalizeFlexMonths,
   parseDateOnly,
@@ -1709,13 +1710,10 @@ function updateCountdown() {
   els.weeksLeft.textContent = String(Math.max(Math.ceil(safeDays / 7), 0));
   els.hoursLeft.textContent = String(Math.max(Math.ceil(diff / (60 * 60 * 1000)), 0));
 
-  if (days > 1) {
-    els.status.textContent = `还有 ${safeDays} 天,每天定时提醒一次。`;
-  } else if (days === 1) {
-    els.status.textContent = "明天就是退休日。";
-  } else {
-    els.status.textContent = "退休日已到,祝你开启新的节奏。";
-  }
+  els.status.textContent = formatCountdownStatus({
+    days,
+    remindersEnabled: !!settings.remindersEnabled,
+  });
 
   renderMonthBand(target);
 }
