@@ -224,7 +224,7 @@ git rm app.js manifest.webmanifest service-worker.js icon.svg
 
 **现状**
 
-- `capacitor.config.json:2` `appId: "com.codex.retirementcountdown"` —— "codex" 看起来是模板残留,**不要用这个上架**。
+- ~~`capacitor.config.json:2` `appId: "com.codex.retirementcountdown"` —— "codex" 看起来是模板残留,**不要用这个上架**。~~ **已改为 `dev.weicao.retirementcountdown`。**
 - `.github/workflows/android-apk.yml` 只产 debug APK,无签名、无版本号管理。
 
 **期望**
