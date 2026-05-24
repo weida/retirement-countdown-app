@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Adaptive foreground: ring at radius 32 (was 40) so outer edge ~30% of canvas, inside safe zone -->
+  <path d="M 96 64 A 32 32 0 1 1 64 32"
+        fill="none"
+        stroke="#FFFDF8"
+        stroke-width="11"
+        stroke-linecap="round"/>
+</svg>
