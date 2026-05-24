@@ -1,6 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="28" fill="#126c62"/>
-  <circle cx="64" cy="64" r="42" fill="#fffdf8"/>
-  <path d="M64 28v36l24 16" fill="none" stroke="#126c62" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M38 91c10 8 42 8 52 0" fill="none" stroke="#b45309" stroke-width="8" stroke-linecap="round"/>
+  <!-- 1. 背景：深绿色圆角矩形 (#126C62) -->
+  <rect width="128" height="128" rx="36" fill="#126C62"/>
+  
+  <!-- 2. 核心图形：米白色倒计时环 (#FFFDF8) -->
+  <!-- 
+    修正说明：
+    - 起点 M 104 64 (3点钟方向)
+    - 弧线 A 40 40 0 1 1 64 24 (顺时针旋转 270度至 12点钟方向)
+    - 结果：一个完美的 3/4 圆环，右上角留出 1/4 缺口。
+  -->
+  <path d="M 104 64 
+           A 40 40 0 1 1 64 24" 
+        fill="none" 
+        stroke="#FFFDF8" 
+        stroke-width="14" 
+        stroke-linecap="round"/>
 </svg>
