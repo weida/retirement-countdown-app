@@ -90,7 +90,7 @@ const DAILY_LINES = [
   "现在还来得及",
   "今天也可以发呆一会儿",
   "把今天的余下交给自己",
-  "今天先这样",
+  "今天轻轻收尾",
   "该来的都会来",
   "把今天的份过好",
   "留点空白给自己",
@@ -99,7 +99,7 @@ const DAILY_LINES = [
   "今天没安排也很好",
   "把闲下来当作正事",
   "今天的天很大",
-  "没事就好",
+  "安稳就好",
   "安稳本身就是好事",
   "多陪自己一会儿",
   "把心放轻一点",
@@ -222,20 +222,20 @@ const DAILY_LINES = [
   "一日复一日",
   "一天过完一天",
   "一日是一日",
-  "今天清账",
-  "今天结束就好",
+  "今天收好尾",
+  "今天平稳收束",
   "今天能完就完",
   "今天不再多想",
-  "今天就到这",
-  "今天交个差",
+  "今天从容收尾",
+  "今天收得干净",
   "今天清清淡淡",
-  "今天没大波澜",
+  "今天也很安稳",
 
   // === 自我允许 ===
   "给自己几分钟",
   "给自己留个角",
   "不必什么都做好",
-  "不必每天努力",
+  "不必每天紧绷",
   "不必每天满分",
   "不必时刻在线",
   "不必随时回复",
@@ -247,15 +247,15 @@ const DAILY_LINES = [
   "把自己当回事",
   "不必委屈自己",
   "不必将就",
-  "不必客气",
+  "不必太委屈",
   "不必勉强自己",
   "不必假装精神好",
   "累就承认累",
   "困就早点睡",
   "不开心就不开心",
-  "想哭就哭",
-  "想退就退",
+  "想静就静",
   "想停就停",
+  "想歇就歇",
   "不必假装好",
   "不必伪装",
   "不必合群",
@@ -269,8 +269,8 @@ const DAILY_LINES = [
   "不必给所有事打分",
   "不必让所有人懂",
   "不必让所有人喜欢",
-  "不必赢",
-  "不必正确",
+  "不必争赢",
+  "不必处处正确",
   "不必完美",
 
   // === 休息 / 放下 ===
@@ -295,7 +295,7 @@ const DAILY_LINES = [
   "周五早点歇",
   "累一天就歇一天",
   "多歇不亏",
-  "想偷懒也行",
+  "想放松也行",
   "偷得浮生半日闲",
   "一日清闲胜过万金",
   "闲下来不是浪费",
@@ -360,7 +360,7 @@ const DAILY_LINES = [
   "笑一笑也好",
   "深呼一口气",
   "闭眼几秒",
-  "看看天花板",
+  "看看窗外的光",
   "看看窗外",
   "望望远处",
   "看一片叶子",
@@ -376,7 +376,7 @@ const DAILY_LINES = [
 
   // === 普通 / 平凡也好 ===
   "普通也很好",
-  "普通是赢",
+  "普通也珍贵",
   "平凡是日常",
   "不必出彩",
   "不必出众",
@@ -385,7 +385,7 @@ const DAILY_LINES = [
   "安静也是力气",
   "一个人也好",
   "自己也要一份",
-  "不必交差",
+  "不必急着交卷",
   "不必汇报",
   "不必表态",
   "不必凡事明白",
@@ -2140,8 +2140,10 @@ async function generateShareImage() {
   drawSharePoster(ctx, {
     isDusk,
     days: els.heroCount.dataset.value || "--",
+    dailyLine: els.dailyLine?.textContent || getDailyLine(new Date()),
     today: formatDate(new Date()),
     retireDate: formatDate(parseDateOnly(settings.retireDate)),
+    statusText: els.status?.textContent || "",
   });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
@@ -2182,9 +2184,9 @@ const POSTER_SANS = 'Inter, system-ui, -apple-system, sans-serif';
 const POSTER_WIDTH = 1080;
 const POSTER_HEIGHT = 1440;
 
-function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
-  // Color hierarchy per v2 spec: hero uses `secondary`, unit + slogan
-  // use `accent`, eyebrow + footer use `muted`.
+function drawSharePoster(ctx, { isDusk, days, dailyLine, today, retireDate, statusText }) {
+  // Color hierarchy per v2 spec: hero uses `secondary`; unit + daily line
+  // use `accent`; eyebrow + footer use `muted`.
   const theme = isDusk
     ? {
         bg: "#1A1411",
@@ -2192,7 +2194,6 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
         accent: "#D4A76A",
         muted: "#8C8279",
         glow: { x: 200, y: 1200, color: "rgba(212,167,106,0.12)" },
-        slogan: "Life begins at retirement",
       }
     : {
         bg: "#FBF9F6",
@@ -2200,7 +2201,6 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
         accent: "#126C62",
         muted: "#8C8C8C",
         glow: { x: 900, y: 200, color: "rgba(18,108,98,0.06)" },
-        slogan: "每天都离自由近一点",
       };
 
   ctx.fillStyle = theme.bg;
@@ -2262,17 +2262,17 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
   ctx.textBaseline = "top";
   ctx.fillText("天", centerX, heroInkBottom + 32);
 
-  // 3. Slogan — top:960, 36px serif, ls 0.15em, accent color
+  // 3. Daily line — mirror the in-app daily line below the hero number.
   ctx.fillStyle = theme.accent;
   ctx.font = `400 36px ${POSTER_SERIF}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.letterSpacing = "5.4px"; // 0.15em of 36
-  ctx.fillText(theme.slogan, centerX, 960);
+  ctx.fillText(dailyLine || getDailyLine(new Date()), centerX, 960);
 
   // 4. Footer info — bottom:160, column gap 20, muted color
   //    Dates row: 24px sans ls 0.05em, two items with gap 40.
-  //    Estimation note: 18px sans ls 0.05em opacity 0.8.
+  //    Status note mirrors the in-app footer status.
   const estimationFontSize = 18;
   const estimationLineH = estimationFontSize * 1.2;
   const datesFontSize = 24;
@@ -2288,8 +2288,8 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
   // Dates row: render the two items centered with a 40px gap
   ctx.font = `400 ${datesFontSize}px ${POSTER_SANS}`;
   ctx.letterSpacing = "1.2px";
-  const todayText = `今天：${today}`;
-  const retireText = `退休日：${retireDate}`;
+  const todayText = `今天 ${today}`;
+  const retireText = `退休日 ${retireDate}`;
   const todayW = ctx.measureText(todayText).width;
   const retireW = ctx.measureText(retireText).width;
   const rowGap = 40;
@@ -2298,12 +2298,12 @@ function drawSharePoster(ctx, { isDusk, days, today, retireDate }) {
   ctx.fillText(todayText, centerX - rowW / 2, datesBottom);
   ctx.fillText(retireText, centerX - rowW / 2 + todayW + rowGap, datesBottom);
 
-  // Estimation note
+  // Status note
   ctx.textAlign = "center";
   ctx.font = `400 ${estimationFontSize}px ${POSTER_SANS}`;
   ctx.letterSpacing = "0.9px";
   ctx.globalAlpha = 0.8;
-  ctx.fillText("按当前已选规则估算", centerX, estimationBottom);
+  ctx.fillText(statusText || "设置退休日期后开始倒计时。", centerX, estimationBottom);
   ctx.globalAlpha = 1;
 
   ctx.letterSpacing = "0px";
