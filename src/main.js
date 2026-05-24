@@ -38,6 +38,92 @@ const RETIRE_YEAR_MAX = 2080;
 const RETIRE_YEAR_DEFAULT_FOCUS = String(new Date().getFullYear() + 10);
 const REMINDER_MINUTE_STEP = 5;
 
+// 每日一句小签:轻、稳、松弛、有盼头。同一天稳定显示,不写入 localStorage。
+const DAILY_LINES = [
+  "再靠近一点",
+  "今天也算数",
+  "慢慢就到了",
+  "把今天过稳",
+  "离自由更近",
+  "又少了一天",
+  "稳稳往前走",
+  "日子在变短",
+  "未来在靠近",
+  "今天轻一点",
+  "向松弛靠近",
+  "把盼头留住",
+  "继续靠近自由",
+  "今天也有进度",
+  "少一天班,多一点盼",
+  "把生活还给自己",
+  "时间站在你这边",
+  "退休不是终点",
+  "保持自己的节奏",
+  "离自己的时间更近了",
+  "慢一点没关系",
+  "一天天往前数",
+  "又翻过一页",
+  "不急不慢的",
+  "走得慢也是走着",
+  "节奏比方向重要",
+  "风景就在前面",
+  "留点力气给自己",
+  "不用太用力",
+  "把今天过得不勉强",
+  "时光在替你存着",
+  "每一天都在做减法",
+  "减一天,多一份从容",
+  "今天也是路上的一格",
+  "心里有数,不必表演",
+  "该歇就歇",
+  "工作之外,还有很多",
+  "慢慢就稳了",
+  "静静地走",
+  "把今天种好",
+  "给自己一点温柔",
+  "不为难自己",
+  "还有不少日子可以期待",
+  "现在还来得及",
+  "今天也可以发呆一会儿",
+  "把今天的余下交给自己",
+  "今天先这样",
+  "该来的都会来",
+  "把今天的份过好",
+  "留点空白给自己",
+  "累的时候就停一停",
+  "路还长,慢慢走",
+  "今天没安排也很好",
+  "把闲下来当作正事",
+  "今天的天很大",
+  "没事就好",
+  "安稳本身就是好事",
+  "多陪自己一会儿",
+  "把心放轻一点",
+  "不必凡事都赶",
+  "今天给自己留个位置",
+  "走着走着就到了",
+  "不必赶在所有人前面",
+  "把今天的累放下",
+  "慢慢来,比较快",
+  "没人比你更懂自己的节奏",
+  "把日历翻得轻一点",
+  "今天不评分",
+  "时间不会催你",
+  "这一天属于你自己",
+  "退休那天总会到",
+  "留住今天的好心情",
+  "不必每天有意义",
+  "把无聊也当作休息",
+  "把今天过成自己的样子",
+  "路在脚下慢慢延展",
+  "看见前面的光",
+  "今天也是好天气",
+  "把今天过得不那么用力",
+  "慢一拍也好",
+];
+
+const RETIRED_DAILY_LINE = "新的时间开始了";
+
 const PICKER_OPTIONS = {
   calculationMode: [
     { value: "policy", label: "按中国法定退休政策自动计算" },
@@ -161,6 +247,7 @@ const els = {
   weeksLeft: document.querySelector("#weeksLeft"),
   hoursLeft: document.querySelector("#hoursLeft"),
   status: document.querySelector("#retirementStatus"),
+  dailyLine: document.querySelector("#dailyLine"),
   nextReminder: document.querySelector("#nextReminder"),
   calculationModeLabel: document.querySelector("#calculationModeLabel"),
   workerTypeLabel: document.querySelector("#workerTypeLabel"),
@@ -1298,6 +1385,7 @@ function formatFlexSummary(result) {
 function updateCountdown() {
   const today = new Date();
   els.todayLabel.textContent = `今天 ${formatDate(today)}`;
+  updateDailyLine(today);
 
   if (!settings.retireDate) {
     setEmptyCountdown();
@@ -1335,6 +1423,28 @@ function setEmptyCountdown() {
   els.hoursLeft.textContent = "--";
   els.status.textContent = "设置退休日期后开始倒计时。";
   renderMonthBand(null);
+}
+
+function getDailyLine(date = new Date()) {
+  const iso = isoFromDate(date);
+  let hash = 0;
+  for (const char of iso) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return DAILY_LINES[hash % DAILY_LINES.length];
+}
+
+function updateDailyLine(today = new Date()) {
+  if (!els.dailyLine) return;
+  if (!settings.retireDate) {
+    els.dailyLine.hidden = true;
+    els.dailyLine.textContent = "";
+    return;
+  }
+  els.dailyLine.hidden = false;
+  els.dailyLine.textContent = isRetired(settings.retireDate)
+    ? RETIRED_DAILY_LINE
+    : getDailyLine(today);
 }
 
 function setHeroCount(value) {
