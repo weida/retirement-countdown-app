@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- 1. 背景：深绿色矩形 -->
-  <rect width="128" height="128" rx="32" fill="#126C62"/>
+  <!-- 1. 背景：深绿色 -->
+  <rect width="128" height="128" rx="36" fill="#126C62"/>
   
-  <!-- 2. 沙漏上半部：加粗的实心描边 (确保轮廓清晰，代表未来的时间) -->
-  <path d="M42 34 H86 L64 64 Z" fill="none" stroke="#FFFDF8" stroke-width="8" stroke-linejoin="round"/>
+  <!-- 2. 极其简化的沙漏轮廓 (仅保留上下横梁) -->
+  <path d="M44 32 H84 M44 96 H84" fill="none" stroke="#FFFDF8" stroke-width="8" stroke-linecap="round"/>
   
-  <!-- 3. 沙漏下半部：实心米白 (代表已经积攒的时光基底) -->
-  <path d="M42 94 H86 L64 64 Z" fill="#FFFDF8"/>
+  <!-- 3. 下半部：实心三角形 (代表积攒的自由，视觉最稳固) -->
+  <path d="M44 96 L64 64 L84 96 Z" fill="#FFFDF8"/>
   
-  <!-- 4. 核心寓意：金色旭日 (象征退休后的新生活，大色块保证极小尺寸下的可见度) -->
-  <circle cx="64" cy="82" r="14" fill="#D4A76A"/>
+  <!-- 4. 核心寓意：金色旭日 (象征目标，对比度最高) -->
+  <circle cx="64" cy="82" r="15" fill="#D4A76A"/>
   
-  <!-- 5. 正在滴落的一点金沙 (视觉连接点) -->
-  <circle cx="64" cy="62" r="4" fill="#D4A76A"/>
+  <!-- 5. 上半部：隐约的轮廓 (仅一条极细的虚线，不干扰视觉) -->
+  <path d="M48 36 L64 60 L80 36" fill="none" stroke="#FFFDF8" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
 </svg>
