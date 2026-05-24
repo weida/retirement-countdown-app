@@ -36,6 +36,7 @@ const BIRTH_YEAR_DEFAULT_FOCUS = "1970";
 const RETIRE_YEAR_MIN = 2010;
 const RETIRE_YEAR_MAX = 2080;
 const RETIRE_YEAR_DEFAULT_FOCUS = String(new Date().getFullYear() + 10);
+const REMINDER_MINUTE_STEP = 5;
 
 const PICKER_OPTIONS = {
   calculationMode: [
@@ -68,6 +69,14 @@ const PICKER_OPTIONS = {
     value: String(i + 1),
     label: `${i + 1} 月`,
   })),
+  reminderHour: Array.from({ length: 24 }, (_, i) => ({
+    value: String(i),
+    label: `${String(i).padStart(2, "0")} 时`,
+  })),
+  reminderMinute: Array.from({ length: 60 / REMINDER_MINUTE_STEP }, (_, i) => {
+    const m = i * REMINDER_MINUTE_STEP;
+    return { value: String(m), label: `${String(m).padStart(2, "0")} 分` };
+  }),
 };
 
 const DYNAMIC_PICKER_OPTIONS = {
@@ -98,6 +107,8 @@ const PICKER_DEFAULT_FOCUS = {
   retireYear: RETIRE_YEAR_DEFAULT_FOCUS,
   retireMonth: "1",
   retireDay: "1",
+  reminderHour: "9",
+  reminderMinute: "0",
 };
 
 const els = {
@@ -167,6 +178,10 @@ const els = {
   retireMonthLabel: document.querySelector("#retireMonthLabel"),
   retireDayLabel: document.querySelector("#retireDayLabel"),
   retireDateHint: document.querySelector("#retireDateHint"),
+  reminderHour: document.querySelector("#reminderHour"),
+  reminderMinute: document.querySelector("#reminderMinute"),
+  reminderHourLabel: document.querySelector("#reminderHourLabel"),
+  reminderMinuteLabel: document.querySelector("#reminderMinuteLabel"),
   pickerSheet: document.querySelector("#pickerSheet"),
   pickerTitle: document.querySelector("#pickerTitle"),
   pickerOptions: document.querySelector("#pickerOptions"),
@@ -357,7 +372,7 @@ function applySettingsToForm() {
   els.flexMonths.value = settings.flexMonths;
   updateFlexSliderDisplay(settings.flexMonths);
   applyRetireDateToForm(settings.retireDate);
-  els.reminderTime.value = settings.reminderTime;
+  applyReminderTimeToForm(settings.reminderTime);
   els.reminderText.value = settings.reminderText;
 }
 
@@ -464,6 +479,36 @@ function showRetireDateHint() {
 function hideRetireDateHint() {
   if (!els.retireDateHint) return;
   els.retireDateHint.hidden = true;
+}
+
+function applyReminderTimeToForm(hhmm) {
+  const fallback = hhmm && /^\d{2}:\d{2}$/.test(hhmm) ? hhmm : "09:00";
+  const [hStr, mStr] = fallback.split(":");
+  const rawH = Math.max(0, Math.min(23, parseInt(hStr, 10) || 0));
+  const rawM = Math.max(0, Math.min(59, parseInt(mStr, 10) || 0));
+  // Round to nearest 5-min step instead of floor, with carry into the next hour
+  // (e.g. 09:07 → 09:05; 09:08 → 09:10; 23:58 → 00:00).
+  const totalMin = rawH * 60 + rawM;
+  const snapped = Math.round(totalMin / REMINDER_MINUTE_STEP) * REMINDER_MINUTE_STEP;
+  const h = Math.floor(snapped / 60) % 24;
+  const m = snapped % 60;
+  els.reminderHour.value = String(h);
+  els.reminderMinute.value = String(m);
+  els.reminderHourLabel.textContent = `${String(h).padStart(2, "0")} 时`;
+  els.reminderMinuteLabel.textContent = `${String(m).padStart(2, "0")} 分`;
+  els.reminderTime.value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function syncReminderTimeFromParts() {
+  const h = parseInt(els.reminderHour.value, 10);
+  const m = parseInt(els.reminderMinute.value, 10);
+  if (Number.isFinite(h) && Number.isFinite(m)) {
+    els.reminderTime.value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  } else {
+    els.reminderTime.value = "";
+  }
+  els.reminderTime.dispatchEvent(new Event("input", { bubbles: true }));
+  els.reminderTime.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 function updateFlexSliderDisplay(rawValue) {
@@ -725,6 +770,8 @@ function setPickerValue(field, value, label) {
     syncBirthDateFromParts();
   } else if (field === "retireYear" || field === "retireMonth" || field === "retireDay") {
     syncRetireDateFromParts();
+  } else if (field === "reminderHour" || field === "reminderMinute") {
+    syncReminderTimeFromParts();
   } else {
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -743,6 +790,8 @@ function pickerTitleFor(field) {
     case "retireYear": return "退休年份";
     case "retireMonth": return "退休月份";
     case "retireDay": return "退休日";
+    case "reminderHour": return "提醒时";
+    case "reminderMinute": return "提醒分";
     default: return "选择";
   }
 }

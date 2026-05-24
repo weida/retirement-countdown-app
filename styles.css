@@ -950,6 +950,22 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
 }
 
 .switch-hint.warning {
+  color: color-mix(in srgb, var(--warning) 55%, var(--muted));
+  font-style: italic;
+}
+
+.switch-hint.warning::before {
+  content: "·";
+  display: inline-block;
+  margin-inline-end: 4px;
+  color: var(--warning);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
   color: var(--warning);
 }
 
@@ -1213,10 +1229,10 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   gap: 10px;
 }
 
-.field-hint {
-  margin: 6px 0 0;
-  font-size: 0.82rem;
-  color: var(--warning);
+.time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .date-cell {

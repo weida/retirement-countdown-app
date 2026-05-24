@@ -280,10 +280,26 @@
 
             <div class="reminder-details" id="reminderDetails" data-open="false" aria-hidden="true">
               <div class="reminder-details-inner">
-                <label class="stack">
+                <div class="stack">
                   <span>提醒时间</span>
-                  <input id="reminderTime" type="time" />
-                </label>
+                  <div class="time-row" role="group" aria-label="提醒时间">
+                    <button type="button" class="picker-trigger date-cell" data-picker="reminderHour" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="picker-value" id="reminderHourLabel">09 时</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"></path>
+                      </svg>
+                    </button>
+                    <button type="button" class="picker-trigger date-cell" data-picker="reminderMinute" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="picker-value" id="reminderMinuteLabel">00 分</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <input type="hidden" id="reminderTime" />
+                  <input type="hidden" id="reminderHour" />
+                  <input type="hidden" id="reminderMinute" />
+                </div>
 
                 <label class="stack">
                   <span>提醒文案</span>
