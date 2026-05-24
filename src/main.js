@@ -9,6 +9,7 @@ import {
   parseDateOnly,
   startOfDay,
 } from "./retirement.js";
+import { isShareCanceledError } from "./share.js";
 
 const STORAGE_KEY = "retirement-countdown-settings";
 const NOTIFICATION_ID = 1001;
@@ -2153,6 +2154,7 @@ async function generateShareImage() {
     try {
       await shareImageNative(blob);
     } catch (err) {
+      if (isShareCanceledError(err)) return;
       console.error("native share failed", err);
       alert("分享失败,请稍后再试。");
     }
@@ -2168,7 +2170,7 @@ async function generateShareImage() {
         text: `我离退休还有 ${els.heroCount.dataset.value} 天!`,
       });
     } catch (err) {
-      if (err.name !== "AbortError") downloadImage(canvas);
+      if (!isShareCanceledError(err)) downloadImage(canvas);
     }
   } else {
     downloadImage(canvas);
