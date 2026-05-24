@@ -236,10 +236,34 @@
 
           <fieldset class="dialog-group">
             <legend>退休日期</legend>
-            <label class="stack">
+            <div class="stack">
               <span>日期</span>
-              <input id="retireDate" type="date" required />
-            </label>
+              <div class="date-row" role="group" aria-label="退休日期">
+                <button type="button" class="picker-trigger date-cell" data-picker="retireYear" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireYearLabel">年</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="retireMonth" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireMonthLabel">月</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="retireDay" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireDayLabel">日</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+              </div>
+              <input type="hidden" id="retireDate" />
+              <input type="hidden" id="retireYear" />
+              <input type="hidden" id="retireMonth" />
+              <input type="hidden" id="retireDay" />
+            </div>
+            <p class="field-hint" id="retireDateHint" role="alert" hidden>请选择退休日</p>
           </fieldset>
 
           <fieldset class="dialog-group reminder-group">

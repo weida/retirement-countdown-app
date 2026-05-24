@@ -33,6 +33,9 @@ const CALENDAR_VIEWS = ["day", "month", "week", "hour"];
 const BIRTH_YEAR_MIN = 1955;
 const BIRTH_YEAR_MAX = 2010;
 const BIRTH_YEAR_DEFAULT_FOCUS = "1970";
+const RETIRE_YEAR_MIN = 2010;
+const RETIRE_YEAR_MAX = 2080;
+const RETIRE_YEAR_DEFAULT_FOCUS = String(new Date().getFullYear() + 10);
 
 const PICKER_OPTIONS = {
   calculationMode: [
@@ -57,6 +60,14 @@ const PICKER_OPTIONS = {
     value: String(i + 1),
     label: `${i + 1} 月`,
   })),
+  retireYear: Array.from({ length: RETIRE_YEAR_MAX - RETIRE_YEAR_MIN + 1 }, (_, i) => {
+    const y = RETIRE_YEAR_MIN + i;
+    return { value: String(y), label: `${y} 年` };
+  }),
+  retireMonth: Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1} 月`,
+  })),
 };
 
 const DYNAMIC_PICKER_OPTIONS = {
@@ -69,12 +80,24 @@ const DYNAMIC_PICKER_OPTIONS = {
       label: `${i + 1} 日`,
     }));
   },
+  retireDay: () => {
+    const year = parseInt(document.getElementById("retireYear").value || RETIRE_YEAR_DEFAULT_FOCUS, 10);
+    const month = parseInt(document.getElementById("retireMonth").value || "1", 10);
+    const dayCount = new Date(year, month, 0).getDate();
+    return Array.from({ length: dayCount }, (_, i) => ({
+      value: String(i + 1),
+      label: `${i + 1} 日`,
+    }));
+  },
 };
 
 const PICKER_DEFAULT_FOCUS = {
   birthYear: BIRTH_YEAR_DEFAULT_FOCUS,
   birthMonth: "1",
   birthDay: "1",
+  retireYear: RETIRE_YEAR_DEFAULT_FOCUS,
+  retireMonth: "1",
+  retireDay: "1",
 };
 
 const els = {
@@ -137,6 +160,13 @@ const els = {
   birthYearLabel: document.querySelector("#birthYearLabel"),
   birthMonthLabel: document.querySelector("#birthMonthLabel"),
   birthDayLabel: document.querySelector("#birthDayLabel"),
+  retireYear: document.querySelector("#retireYear"),
+  retireMonth: document.querySelector("#retireMonth"),
+  retireDay: document.querySelector("#retireDay"),
+  retireYearLabel: document.querySelector("#retireYearLabel"),
+  retireMonthLabel: document.querySelector("#retireMonthLabel"),
+  retireDayLabel: document.querySelector("#retireDayLabel"),
+  retireDateHint: document.querySelector("#retireDateHint"),
   pickerSheet: document.querySelector("#pickerSheet"),
   pickerTitle: document.querySelector("#pickerTitle"),
   pickerOptions: document.querySelector("#pickerOptions"),
@@ -202,6 +232,12 @@ async function init() {
     event.preventDefault();
     const calculation = refreshPolicyCalculation();
     const previousRetireDate = settings.retireDate;
+
+    if (els.calculationMode.value === "manual" && !els.retireDate.value) {
+      showRetireDateHint();
+      return;
+    }
+    hideRetireDateHint();
 
     settings = {
       ...settings,
@@ -320,7 +356,7 @@ function applySettingsToForm() {
   setHiddenAndLabel("flexMode", settings.flexMode);
   els.flexMonths.value = settings.flexMonths;
   updateFlexSliderDisplay(settings.flexMonths);
-  els.retireDate.value = settings.retireDate;
+  applyRetireDateToForm(settings.retireDate);
   els.reminderTime.value = settings.reminderTime;
   els.reminderText.value = settings.reminderText;
 }
@@ -372,6 +408,62 @@ function syncBirthDateFromParts() {
   }
   els.birthDate.dispatchEvent(new Event("input", { bubbles: true }));
   els.birthDate.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function applyRetireDateToForm(iso) {
+  els.retireDate.value = iso || "";
+  if (!iso) {
+    els.retireYear.value = "";
+    els.retireMonth.value = "";
+    els.retireDay.value = "";
+    els.retireYearLabel.textContent = "年";
+    els.retireMonthLabel.textContent = "月";
+    els.retireDayLabel.textContent = "日";
+    return;
+  }
+  const [y, m, d] = iso.split("-");
+  els.retireYear.value = String(parseInt(y, 10));
+  els.retireMonth.value = String(parseInt(m, 10));
+  els.retireDay.value = String(parseInt(d, 10));
+  els.retireYearLabel.textContent = `${parseInt(y, 10)} 年`;
+  els.retireMonthLabel.textContent = `${parseInt(m, 10)} 月`;
+  els.retireDayLabel.textContent = `${parseInt(d, 10)} 日`;
+}
+
+function syncRetireDateFromParts() {
+  // User is actively picking → clear the empty-submit hint regardless of completeness.
+  hideRetireDateHint();
+
+  const y = els.retireYear.value;
+  const m = els.retireMonth.value;
+  let d = els.retireDay.value;
+
+  if (y && m && d) {
+    const maxDay = new Date(Number(y), Number(m), 0).getDate();
+    if (Number(d) > maxDay) {
+      d = String(maxDay);
+      els.retireDay.value = d;
+      els.retireDayLabel.textContent = `${maxDay} 日`;
+    }
+    els.retireDate.value = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  } else {
+    els.retireDate.value = "";
+  }
+  els.retireDate.dispatchEvent(new Event("input", { bubbles: true }));
+  els.retireDate.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function showRetireDateHint() {
+  if (!els.retireDateHint) return;
+  els.retireDateHint.hidden = false;
+  const firstTrigger = document.querySelector('.picker-trigger[data-picker="retireYear"]');
+  firstTrigger?.focus();
+  firstTrigger?.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function hideRetireDateHint() {
+  if (!els.retireDateHint) return;
+  els.retireDateHint.hidden = true;
 }
 
 function updateFlexSliderDisplay(rawValue) {
@@ -631,6 +723,8 @@ function setPickerValue(field, value, label) {
 
   if (field === "birthYear" || field === "birthMonth" || field === "birthDay") {
     syncBirthDateFromParts();
+  } else if (field === "retireYear" || field === "retireMonth" || field === "retireDay") {
+    syncRetireDateFromParts();
   } else {
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -646,6 +740,9 @@ function pickerTitleFor(field) {
     case "birthYear": return "出生年份";
     case "birthMonth": return "出生月份";
     case "birthDay": return "出生日";
+    case "retireYear": return "退休年份";
+    case "retireMonth": return "退休月份";
+    case "retireDay": return "退休日";
     default: return "选择";
   }
 }
@@ -1080,12 +1177,19 @@ function attachDragToClose(handle, dialog, closeFn) {
   handle.addEventListener("touchcancel", reset);
 }
 
+function setRetirePickerEnabled(enabled) {
+  document.querySelectorAll('.picker-trigger[data-picker="retireYear"], .picker-trigger[data-picker="retireMonth"], .picker-trigger[data-picker="retireDay"]').forEach((btn) => {
+    btn.disabled = !enabled;
+  });
+}
+
 function refreshPolicyCalculation() {
   const policyMode = els.calculationMode.value === "policy";
   els.policyFields.hidden = !policyMode;
   els.resultCard.hidden = true;
-  els.retireDate.readOnly = policyMode;
+  setRetirePickerEnabled(!policyMode);
   els.flexMonthsLabel.hidden = els.flexMode.value === "statutory";
+  if (policyMode) hideRetireDateHint();
 
   if (!policyMode) {
     els.policyNote.textContent = "手动日期适合特殊工种、已确认退休时间,或不适用企业职工法定退休年龄规则的情况。";
@@ -1094,7 +1198,7 @@ function refreshPolicyCalculation() {
   }
 
   if (!els.birthDate.value) {
-    els.retireDate.value = "";
+    applyRetireDateToForm("");
     els.policyNote.textContent = "填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。";
     updateExplainer(null);
     return null;
@@ -1107,7 +1211,7 @@ function refreshPolicyCalculation() {
     flexMonths: els.flexMonths.value,
   });
 
-  els.retireDate.value = result.finalDate;
+  applyRetireDateToForm(result.finalDate);
   els.resultCard.hidden = false;
 
   // Update Timeline

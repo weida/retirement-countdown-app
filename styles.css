@@ -1194,6 +1194,12 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.picker-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background: color-mix(in srgb, var(--card) 50%, transparent);
+}
+
 .picker-value {
   flex: 1;
   line-height: 1.4;
@@ -1201,10 +1207,16 @@ body[data-mood="dusk"] input[type="range"]::-moz-range-thumb {
   word-break: break-word;
 }
 
-.birthdate-stack .date-row {
+.date-row {
   display: grid;
   grid-template-columns: 1.3fr 1fr 1fr;
   gap: 10px;
+}
+
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--warning);
 }
 
 .date-cell {
