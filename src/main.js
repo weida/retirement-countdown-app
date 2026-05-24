@@ -1188,10 +1188,17 @@ function setHeroCount(value) {
   const text = String(value);
   if (els.heroCount.dataset.value === text) return;
   els.heroCount.dataset.value = text;
-  
+
+  const digitCount = (text.match(/\d/g) || []).length;
+  if (digitCount > 0) {
+    els.hero.dataset.digitCount = String(digitCount);
+  } else {
+    delete els.hero.dataset.digitCount;
+  }
+
   // Clear existing reels
   els.heroCount.replaceChildren();
-  
+
   if (reduceMotionQuery.matches || isNaN(parseInt(text, 10))) {
     els.heroCount.textContent = text;
     return;

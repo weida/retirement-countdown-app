@@ -378,9 +378,9 @@ body[data-mood="dusk"] .mood-icon--moon {
 
 .hero-main {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 6px;
 }
 
 .hero-hint {
@@ -457,6 +457,16 @@ body[data-mood="dusk"] .mood-icon--moon {
   font-weight: 500;
   font-size: clamp(1.5rem, 4vw, 2.6rem);
   color: var(--accent-strong);
+  align-self: center;
+  transform: translateY(0.12em);
+}
+
+.hero[data-digit-count="4"] .hero-number {
+  font-size: clamp(4.8rem, 15vw, 9.5rem);
+}
+
+.hero[data-digit-count="5"] .hero-number {
+  font-size: clamp(4.2rem, 13vw, 8.4rem);
 }
 
 /* ==== Stamps (months / weeks / hours) ==== */
