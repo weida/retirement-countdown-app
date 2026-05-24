@@ -1,16 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- 1. 背景：深绿色 -->
+  <!-- 1. 背景：深绿色圆角矩形 (#126C62) -->
   <rect width="128" height="128" rx="36" fill="#126C62"/>
   
-  <!-- 2. 极其简化的沙漏轮廓 (仅保留上下横梁) -->
-  <path d="M44 32 H84 M44 96 H84" fill="none" stroke="#FFFDF8" stroke-width="8" stroke-linecap="round"/>
-  
-  <!-- 3. 下半部：实心三角形 (代表积攒的自由，视觉最稳固) -->
-  <path d="M44 96 L64 64 L84 96 Z" fill="#FFFDF8"/>
-  
-  <!-- 4. 核心寓意：金色旭日 (象征目标，对比度最高) -->
-  <circle cx="64" cy="82" r="15" fill="#D4A76A"/>
-  
-  <!-- 5. 上半部：隐约的轮廓 (仅一条极细的虚线，不干扰视觉) -->
-  <path d="M48 36 L64 60 L80 36" fill="none" stroke="#FFFDF8" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+  <!-- 2. 核心图形：米白色倒计时环 (#FFFDF8) -->
+  <!-- 
+    设计逻辑：
+    - 粗壮的圆环确保在小尺寸下清晰可见。
+    - 右上角的缺口（约 1/4 弧度）直观表达“剩余/倒计时”的概念。
+    - 仅使用两色，追求极致克制与安静。
+  -->
+  <path d="M64 24 
+           A40 40 0 1 1 88 40" 
+        fill="none" 
+        stroke="#FFFDF8" 
+        stroke-width="14" 
+        stroke-linecap="round" 
+        transform="translate(0, 0)"/>
 </svg>
