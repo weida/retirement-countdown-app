@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calculateRetirementDate,
+  formatCountdownStatus,
   isRetired,
   normalizeFlexMonths,
 } from "./retirement.js";
@@ -123,5 +124,17 @@ describe("isRetired", () => {
     expect(isRetired("2026-05-10", new Date("2026-05-09T23:59:59"))).toBe(false);
     expect(isRetired("2026-05-10", new Date("2026-05-10T00:00:00"))).toBe(true);
     expect(isRetired("2026-05-10", new Date("2026-05-11T00:00:00"))).toBe(true);
+  });
+});
+
+describe("formatCountdownStatus", () => {
+  it("does not mention daily reminders when reminders are disabled", () => {
+    expect(formatCountdownStatus({ days: 6701, remindersEnabled: false }))
+      .toBe("还有 6701 天。");
+  });
+
+  it("mentions daily reminders when reminders are enabled", () => {
+    expect(formatCountdownStatus({ days: 6701, remindersEnabled: true }))
+      .toBe("还有 6701 天,每天定时提醒一次。");
   });
 });

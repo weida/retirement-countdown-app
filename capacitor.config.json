@@ -1,5 +1,5 @@
 {
-  "appId": "com.codex.retirementcountdown",
+  "appId": "dev.weicao.retirementcountdown",
   "appName": "退休倒计时",
   "webDir": "dist",
   "plugins": {

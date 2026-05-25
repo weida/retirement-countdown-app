@@ -14,7 +14,7 @@
       <article class="countdown-card" aria-label="退休倒计时">
         <div class="cluster cluster--top">
           <header class="card-top">
-            <p class="eyebrow">Retirement Countdown · 退休倒计时</p>
+            <p class="eyebrow">退休倒计时</p>
             <div class="card-actions">
               <button class="icon-btn" id="shareBtn" type="button" aria-label="分享海报" title="分享">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -68,6 +68,8 @@
             <span id="heroHintText">点击查看日历</span>
           </div>
         </button>
+
+        <p class="daily-line" id="dailyLine" aria-live="polite" hidden></p>
 
         <div class="cluster cluster--bottom">
           <section class="stamps" aria-label="详细倒计时">
@@ -220,6 +222,15 @@
                   <strong id="finalResult">--</strong>
                 </div>
               </div>
+
+              <button type="button" class="explainer-trigger" id="openExplainer">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>为什么是这个日期？</span>
+              </button>
             </div>
 
             <p class="policy-note" id="policyNote">填写出生日期后自动计算。特殊工种、提前退休资格和养老金缴费年限需以当地社保经办口径为准。</p>
@@ -227,10 +238,34 @@
 
           <fieldset class="dialog-group">
             <legend>退休日期</legend>
-            <label class="stack">
+            <div class="stack">
               <span>日期</span>
-              <input id="retireDate" type="date" required />
-            </label>
+              <div class="date-row" role="group" aria-label="退休日期">
+                <button type="button" class="picker-trigger date-cell" data-picker="retireYear" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireYearLabel">年</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="retireMonth" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireMonthLabel">月</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <button type="button" class="picker-trigger date-cell" data-picker="retireDay" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="picker-value" id="retireDayLabel">日</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+              </div>
+              <input type="hidden" id="retireDate" />
+              <input type="hidden" id="retireYear" />
+              <input type="hidden" id="retireMonth" />
+              <input type="hidden" id="retireDay" />
+            </div>
+            <p class="field-hint" id="retireDateHint" role="alert" hidden>请选择退休日</p>
           </fieldset>
 
           <fieldset class="dialog-group reminder-group">
@@ -247,10 +282,26 @@
 
             <div class="reminder-details" id="reminderDetails" data-open="false" aria-hidden="true">
               <div class="reminder-details-inner">
-                <label class="stack">
+                <div class="stack">
                   <span>提醒时间</span>
-                  <input id="reminderTime" type="time" />
-                </label>
+                  <div class="time-row" role="group" aria-label="提醒时间">
+                    <button type="button" class="picker-trigger date-cell" data-picker="reminderHour" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="picker-value" id="reminderHourLabel">09 时</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"></path>
+                      </svg>
+                    </button>
+                    <button type="button" class="picker-trigger date-cell" data-picker="reminderMinute" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="picker-value" id="reminderMinuteLabel">00 分</span>
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <input type="hidden" id="reminderTime" />
+                  <input type="hidden" id="reminderHour" />
+                  <input type="hidden" id="reminderMinute" />
+                </div>
 
                 <label class="stack">
                   <span>提醒文案</span>
@@ -321,6 +372,94 @@
             </button>
           </header>
           <ul class="picker-options" id="pickerOptions" role="listbox"></ul>
+        </dialog>
+
+        <dialog class="explainer-sheet" id="explainerSheet" aria-labelledby="explainerTitle">
+          <button type="button" class="sheet-handle" id="explainerHandle" aria-label="拖拽下拉关闭">
+            <span class="sheet-handle-bar" aria-hidden="true"></span>
+          </button>
+          <header class="explainer-head">
+            <h3 id="explainerTitle">计算依据</h3>
+            <button type="button" class="icon-btn" id="explainerClose" aria-label="关闭计算依据">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+              </svg>
+            </button>
+          </header>
+
+          <div class="explainer-body">
+            <details class="explainer-section" open>
+              <summary>你的计算过程</summary>
+              <div class="explainer-section-body">
+                <p class="explainer-meta">
+                  出生日期：<strong id="explainerBirth">--</strong><br />
+                  人员类型：<strong id="explainerWorker">--</strong>
+                </p>
+                <ol class="explainer-steps">
+                  <li>
+                    <span class="step-tag">1. 原定退休</span>
+                    <span class="step-desc" id="explainerStep1Desc">--</span>
+                    <strong class="step-date" id="explainerStep1Date">--</strong>
+                  </li>
+                  <li>
+                    <span class="step-tag">2. 改革后法定退休</span>
+                    <span class="step-desc" id="explainerStep2Desc">--</span>
+                    <strong class="step-date" id="explainerStep2Date">--</strong>
+                  </li>
+                  <li>
+                    <span class="step-tag">3. 弹性退休选择</span>
+                    <span class="step-desc" id="explainerStep3Desc">--</span>
+                    <p class="step-note" id="explainerStep3Note" hidden></p>
+                  </li>
+                </ol>
+                <div class="explainer-final">
+                  <span>最终退休日</span>
+                  <strong id="explainerFinalDate">--</strong>
+                </div>
+              </div>
+            </details>
+
+            <details class="explainer-section">
+              <summary>规则摘要</summary>
+              <div class="explainer-section-body">
+                <p><strong>男职工：</strong>原 60 岁退休。自 1965 年 1 月出生人员起，逐步延迟至 63 岁。</p>
+                <p><strong>女职工，原 55 岁退休：</strong>自 1970 年 1 月出生人员起，逐步延迟至 58 岁。</p>
+                <p><strong>女职工，原 50 岁退休：</strong>自 1975 年 1 月出生人员起，逐步延迟至 55 岁。</p>
+                <p><strong>弹性退休：</strong>可按规定选择提前或延迟，但提前退休不能早于原法定退休年龄。</p>
+              </div>
+            </details>
+
+            <details class="explainer-section" open>
+              <summary>适用范围</summary>
+              <div class="explainer-section-body">
+                <p>本结果适用于按企业职工法定退休年龄规则估算的场景。</p>
+                <p>以下情况没有纳入计算：</p>
+                <ul class="explainer-bullets">
+                  <li>特殊工种提前退休</li>
+                  <li>因病或非因工致残提前退休</li>
+                  <li>地方经办口径差异</li>
+                  <li>养老保险缴费年限认定</li>
+                  <li>个人档案年龄、干部 / 工人身份认定等特殊情况</li>
+                </ul>
+                <p class="explainer-disclaimer">如你的情况涉及上述因素，请以当地社保经办机构确认结果为准。</p>
+              </div>
+            </details>
+
+            <details class="explainer-section">
+              <summary>政策依据</summary>
+              <div class="explainer-section-body">
+                <ul class="explainer-bullets">
+                  <li>全国人大常委会关于实施渐进式延迟法定退休年龄的决定</li>
+                  <li>人力资源社会保障部等部门《实施弹性退休制度暂行办法》</li>
+                </ul>
+                <p class="explainer-disclaimer">本 app 仅根据公开政策规则做日期估算，不作为办理退休手续的依据。</p>
+              </div>
+            </details>
+          </div>
+
+          <footer class="explainer-foot">
+            <button type="button" class="primary" id="explainerAck">知道了</button>
+          </footer>
         </dialog>
       </article>
     </main>
